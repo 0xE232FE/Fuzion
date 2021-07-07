@@ -1,10 +1,8 @@
 #include "clantagchanger.h"
 
-char Settings::ClanTagChanger::value[30] = "";
-bool Settings::ClanTagChanger::animation = false;
-int Settings::ClanTagChanger::animationSpeed = 650;
-bool Settings::ClanTagChanger::enabled = false; // TODO find a way to go back to the "official" clan tag for the player? -- Save the current clan tag, before editing, then restore it later
-ClanTagType Settings::ClanTagChanger::type = ClanTagType::STATIC;
+#include <sstream>
+#include "../settings.h"
+#include "../interfaces.h"
 
 static std::vector<std::wstring> splitWords(std::wstring text)
 {
@@ -99,20 +97,22 @@ void ClanTagChanger::BeginFrame(float frameTime)
 	if (!engine->IsInGame())
 		return;
 
-	long currentTime_ms = Util::GetEpochTime();
-	static long timeStamp = currentTime_ms;
-
-	if (currentTime_ms - timeStamp > ClanTagChanger::animation->GetCurrentFrame().time)
-	{
-		timeStamp = currentTime_ms;
-		ClanTagChanger::animation->NextFrame();
-	}
-
-	std::string ctWithEscapesProcessed = std::string(Settings::ClanTagChanger::value);
-	Util::StdReplaceStr(ctWithEscapesProcessed, "\\n", "\n"); // compute time impact? also, referential so i assume RAII builtin cleans it up...
-
 	if (Settings::ClanTagChanger::type == ClanTagType::STATIC)
+	{
+		std::string ctWithEscapesProcessed = std::string(Settings::ClanTagChanger::value);
+		Util::StdReplaceStr(ctWithEscapesProcessed, "\\n", "\n"); // compute time impact? also, referential so i assume RAII builtin cleans it up...
 		SendClanTag(ctWithEscapesProcessed.c_str(), "");
+	}
 	else
+	{
+		long currentTime_ms = Util::GetEpochTime();
+		static long timeStamp = currentTime_ms;
+
+		if (currentTime_ms - timeStamp > ClanTagChanger::animation->GetCurrentFrame().time)
+		{
+			timeStamp = currentTime_ms;
+			ClanTagChanger::animation->NextFrame();
+		}
 		SendClanTag(Util::WstringToString(ClanTagChanger::animation->GetCurrentFrame().text).c_str(), "");
+	}
 }

@@ -1,24 +1,29 @@
 #include "snipercrosshair.h"
 
-bool Settings::SniperCrosshair::enabled = false;
+#include "../settings.h"
+#include "../interfaces.h"
 
-void SniperCrosshair::BeginFrame()
+bool SniperCrosshair::DrawCrosshair()
 {
-	if (!engine->IsInGame())
-		return;
+	if ( !Settings::SniperCrosshair::enabled )
+		return false;
 
-	C_BasePlayer* localplayer = (C_BasePlayer*) entityList->GetClientEntity(engine->GetLocalPlayer());
-	if (!localplayer)
-		return;
+	C_BasePlayer* localPlayer = (C_BasePlayer*) entityList->GetClientEntity(engine->GetLocalPlayer());
+    if ( !localPlayer || !localPlayer->GetAlive() ) {
+        return false;
+    }
 
-	if (!localplayer->GetAlive())
-	{
-		C_BasePlayer* observerTarget = (C_BasePlayer*) entityList->GetClientEntityFromHandle(localplayer->GetObserverTarget());
-		if (!observerTarget)
-			return;
+    C_BaseCombatWeapon *activeWeapon = ( C_BaseCombatWeapon* ) entityList->GetClientEntityFromHandle( localPlayer->GetActiveWeapon() );
+    if ( !activeWeapon || activeWeapon->GetCSWpnData()->GetWeaponType() != CSWeaponType::WEAPONTYPE_SNIPER_RIFLE ) {
+        return false;
+    }
+	
+	if ( localPlayer->IsScoped() ) {
+        return false;
+    }
 
-		localplayer = observerTarget;
-	}
-
-	*CrosshairWeaponTypeCheck = Settings::SniperCrosshair::enabled && !localplayer->IsScoped() ? 255 : 5;
+	activeWeapon->GetCSWpnData()->SetWeaponType( CSWeaponType::WEAPONTYPE_RIFLE ); // this doesn't matter too much, as long as it's not 5 (WEAPONTYPE_SNIPER_RIFLE)
+	activeWeapon->DrawCrosshair();
+	activeWeapon->GetCSWpnData()->SetWeaponType( CSWeaponType::WEAPONTYPE_SNIPER_RIFLE ); // restore after drawing
+	return true;
 }

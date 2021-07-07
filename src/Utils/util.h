@@ -1,24 +1,21 @@
 #pragma once
 
 #include <string>
-#include <sys/mman.h>
-#include <zconf.h>
 #include <vector>
-#include <map>
 #include <algorithm>
-#include <chrono>
-#include <locale>
-#include <codecvt>
-#include <sstream>
+
 #include "../ImGUI/imgui.h"
-#include "../SDK/SDK.h"
+#include "../SDK/IClientEntity.h"
+#include "../SDK/color.h"
 
 namespace Util
 {
+	extern const char *logFileName;
+
+	void Log(char const * const format, ...);
 	std::string ReplaceString(std::string subject, const std::string& search, const std::string& replace);
 	void StdReplaceStr(std::string&, const std::string&, const std::string&);
 	const char* PadStringRight(std::string text, size_t value);
-	void ProtectAddr(void* address, int prot);
 	bool Contains(const std::string &word, const std::string &sentence);
 	std::string ToLower(std::string str);
 	std::string ToUpper(std::string str);
@@ -29,12 +26,7 @@ namespace Util
 	Color GetHealthColor(C_BasePlayer* player);
 	int RandomInt(int min, int max);
 	long GetEpochTime();
-	int IsDebuggerPresent();
 
-	const std::map<int,int> * GetModelTypeBoneMap(C_BasePlayer* player);
-	ModelType GetModelTypeID(C_BasePlayer* player);
-	std::string ModelTypeToString(ModelType model);
-	std::string BoneToString(const std::map<int,int> * model, int boneID );
 	template <typename T>
 	T GetValueByKey(std::vector<std::pair<int, T>> vec, int key)
 	{
@@ -77,4 +69,22 @@ namespace Util
 			return std::hash<int>()((int) t);
 		}
 	};
+
+	template<typename N_t = size_t, N_t N>
+	constexpr N_t StrLen(const char (&string_literal)[N])
+	{
+		return N - 1;
+	}
+
+	template<typename N_t = size_t, N_t N>
+	constexpr N_t StrLen(const wchar_t (&string_literal)[N])
+	{
+		return N - 1;
+	}
+
+	template<typename N_t = size_t, typename T, N_t N>
+	constexpr N_t LengthOf(const T (&arr)[N])
+	{
+		return N;
+	}
 }

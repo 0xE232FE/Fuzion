@@ -1,22 +1,10 @@
 #include "triggerbot.h"
 #include "autowall.h"
 
-bool Settings::Triggerbot::enabled = false;
-bool Settings::Triggerbot::Filters::enemies = true;
-bool Settings::Triggerbot::Filters::allies = false;
-bool Settings::Triggerbot::Filters::walls = false;
-bool Settings::Triggerbot::Filters::smokeCheck = false;
-bool Settings::Triggerbot::Filters::flashCheck = false;
-bool Settings::Triggerbot::Filters::head = true;
-bool Settings::Triggerbot::Filters::chest = true;
-bool Settings::Triggerbot::Filters::stomach = true;
-bool Settings::Triggerbot::Filters::arms = true;
-bool Settings::Triggerbot::Filters::legs = true;
-bool Settings::Triggerbot::RandomDelay::enabled = true;
-int Settings::Triggerbot::RandomDelay::lowBound = 20;
-int Settings::Triggerbot::RandomDelay::highBound = 35;
-int Settings::Triggerbot::RandomDelay::lastRoll = 0;
-ButtonCode_t Settings::Triggerbot::key = ButtonCode_t::KEY_LALT;
+#include "../settings.h"
+#include "../interfaces.h"
+#include "../Utils/math.h"
+#include "../Utils/entity.h"
 
 void Triggerbot::CreateMove(CUserCmd *cmd)
 {
@@ -29,8 +17,8 @@ void Triggerbot::CreateMove(CUserCmd *cmd)
 	C_BasePlayer* localplayer = (C_BasePlayer*) entityList->GetClientEntity(engine->GetLocalPlayer());
 	if (!localplayer || !localplayer->GetAlive())
 		return;
-	
-	if (Settings::Triggerbot::Filters::flashCheck && localplayer->GetFlashBangTime() - globalVars->curtime > 2.0f)
+
+	if (Settings::Triggerbot::Filters::flashCheck && localplayer->IsFlashed())
 		return;
 
 	long currentTime_ms = Util::GetEpochTime();
@@ -95,10 +83,10 @@ void Triggerbot::CreateMove(CUserCmd *cmd)
 		|| player->GetImmune())
 		return;
 
-	if (player->GetTeam() != localplayer->GetTeam() && !Settings::Triggerbot::Filters::enemies)
+	if (!Entity::IsTeamMate(player, localplayer) && !Settings::Triggerbot::Filters::enemies)
 		return;
 
-	if (player->GetTeam() == localplayer->GetTeam() && !Settings::Triggerbot::Filters::allies)
+	if (Entity::IsTeamMate(player, localplayer) && !Settings::Triggerbot::Filters::allies)
 		return;
 
 	bool filter;

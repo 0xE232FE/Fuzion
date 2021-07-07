@@ -1,44 +1,69 @@
 #include "thirdperson.h"
+#include "antiaim.h"
 
-bool Settings::ThirdPerson::enabled = false;
-float Settings::ThirdPerson::distance = 30.f;
+#include "../settings.h"
+#include "../interfaces.h"
 
-void ThirdPerson::BeginFrame()
+void ThirdPerson::OverrideView(CViewSetup *pSetup)
 {
-	if (!engine->IsInGame())
-		return;
-
 	C_BasePlayer* localplayer = (C_BasePlayer*) entityList->GetClientEntity(engine->GetLocalPlayer());
-	if (!localplayer || !localplayer->GetAlive())
+
+	if(!localplayer)
 		return;
 
-	if (Settings::ThirdPerson::enabled)
+	C_BaseCombatWeapon* activeWeapon = (C_BaseCombatWeapon*) entityList->GetClientEntityFromHandle(localplayer->GetActiveWeapon());
+
+	if (activeWeapon && activeWeapon->GetCSWpnData() && activeWeapon->GetCSWpnData()->GetWeaponType() == CSWeaponType::WEAPONTYPE_GRENADE)
 	{
-		for (ptrdiff_t off = 0; off < 0x2; off++)
-			*(CamThinkSvCheatsCheck + off) = 0x90;
+		input->m_fCameraInThirdPerson = false;
+		return;
 	}
-	else
+
+	if(localplayer->GetAlive() && Settings::ThirdPerson::enabled && !engine->IsTakingScreenshot())
 	{
-		*CamThinkSvCheatsCheck = 0x74;
-		*(CamThinkSvCheatsCheck + 0x1) = 0x64;
+		QAngle viewAngles;
+		engine->GetViewAngles(viewAngles);
+		trace_t tr;
+		Ray_t traceRay;
+		Vector eyePos = localplayer->GetEyePosition();
+
+		Vector camOff = Vector(cos(DEG2RAD(viewAngles.y)) * Settings::ThirdPerson::distance,
+							   sin(DEG2RAD(viewAngles.y)) * Settings::ThirdPerson::distance,
+							   sin(DEG2RAD(-viewAngles.x)) * Settings::ThirdPerson::distance);
+
+		traceRay.Init(eyePos, (eyePos - camOff));
+		CTraceFilter traceFilter;
+		traceFilter.pSkip = localplayer;
+		trace->TraceRay(traceRay, MASK_SOLID, &traceFilter, &tr);
+
+        input->m_fCameraInThirdPerson = true;
+		input->m_vecCameraOffset = Vector(viewAngles.x, viewAngles.y, Settings::ThirdPerson::distance * ((tr.fraction < 1.0f) ? tr.fraction : 1.0f) );
+	}
+	else if(input->m_fCameraInThirdPerson)
+	{
+		input->m_fCameraInThirdPerson = false;
+		input->m_vecCameraOffset = Vector(0.f, 0.f, 0.f);
 	}
 }
 
+
 void ThirdPerson::FrameStageNotify(ClientFrameStage_t stage)
 {
-	if (!engine->IsInGame())
-		return;
+	if (stage == ClientFrameStage_t::FRAME_RENDER_START && engine->IsInGame())
+	{
+		C_BasePlayer* localplayer = (C_BasePlayer*) entityList->GetClientEntity(engine->GetLocalPlayer());
 
-	if (stage != ClientFrameStage_t::FRAME_RENDER_START)
-		return;
-
-	C_BasePlayer* localplayer = (C_BasePlayer*) entityList->GetClientEntity(engine->GetLocalPlayer());
-	if (!localplayer)
-		return;
-
-	input->m_fCameraInThirdPerson = Settings::ThirdPerson::enabled && localplayer->GetAlive();
-	input->m_vecCameraOffset.z = Settings::ThirdPerson::enabled ? Settings::ThirdPerson::distance : 150.f;
-
-	if (Settings::ThirdPerson::enabled)
-		*localplayer->GetVAngles() = CreateMove::lastTickViewAngles;
+		if (localplayer && localplayer->GetAlive() && Settings::ThirdPerson::enabled && input->m_fCameraInThirdPerson)
+		{
+            switch (Settings::ThirdPerson::type)
+            {
+                case ShowedAngle::REAL:
+                    *localplayer->GetVAngles() = AntiAim::realAngle;
+                    break;
+                case ShowedAngle::FAKE:
+                    *localplayer->GetVAngles() = AntiAim::fakeAngle;
+                    break;
+            }
+		}
+	}
 }

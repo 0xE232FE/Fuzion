@@ -1,6 +1,7 @@
 #include "util_items.h"
-#include "skins.h"
 
+#include "util.h"
+#include "../interfaces.h"
 namespace Util
 {
 	namespace Items
@@ -42,15 +43,15 @@ namespace Util
 			{ ItemDefinitionIndexMap.at(i::WEAPON_FLASHBANG).entityName,			i::WEAPON_FLASHBANG },
 			{ ItemDefinitionIndexMap.at(i::WEAPON_HEGRENADE).entityName,			i::WEAPON_HEGRENADE },
 			{ ItemDefinitionIndexMap.at(i::WEAPON_SMOKEGRENADE).entityName,			i::WEAPON_SMOKEGRENADE },
-			{ ItemDefinitionIndexMap.at(i::WEAPON_MOLOTOV).entityName,				i::WEAPON_MOLOTOV },
-			{ ItemDefinitionIndexMap.at(i::WEAPON_DECOY).entityName,				i::WEAPON_DECOY },
+			{ ItemDefinitionIndexMap.at(i::WEAPON_MOLOTOV).entityName,			i::WEAPON_MOLOTOV },
+			{ ItemDefinitionIndexMap.at(i::WEAPON_DECOY).entityName,			i::WEAPON_DECOY },
 			{ ItemDefinitionIndexMap.at(i::WEAPON_INCGRENADE).entityName,			i::WEAPON_INCGRENADE },
-			{ ItemDefinitionIndexMap.at(i::WEAPON_C4).entityName,					i::WEAPON_C4 },
-			{ ItemDefinitionIndexMap.at(i::WEAPON_KNIFE_T).entityName,				i::WEAPON_KNIFE_T },
+			{ ItemDefinitionIndexMap.at(i::WEAPON_C4).entityName,				i::WEAPON_C4 },
+			{ ItemDefinitionIndexMap.at(i::WEAPON_KNIFE_T).entityName,			i::WEAPON_KNIFE_T },
 			{ ItemDefinitionIndexMap.at(i::WEAPON_M4A1_SILENCER).entityName,		i::WEAPON_M4A1_SILENCER },
 			{ ItemDefinitionIndexMap.at(i::WEAPON_USP_SILENCER).entityName,			i::WEAPON_USP_SILENCER },
-			{ ItemDefinitionIndexMap.at(i::WEAPON_CZ75A).entityName,				i::WEAPON_CZ75A },
-			{ ItemDefinitionIndexMap.at(i::WEAPON_REVOLVER).entityName,				i::WEAPON_REVOLVER },
+			{ ItemDefinitionIndexMap.at(i::WEAPON_CZ75A).entityName,			i::WEAPON_CZ75A },
+			{ ItemDefinitionIndexMap.at(i::WEAPON_REVOLVER).entityName,			i::WEAPON_REVOLVER },
 			{ ItemDefinitionIndexMap.at(i::WEAPON_KNIFE_BAYONET).entityName,		i::WEAPON_KNIFE_BAYONET },
 			{ ItemDefinitionIndexMap.at(i::WEAPON_KNIFE_FLIP).entityName,			i::WEAPON_KNIFE_FLIP },
 			{ ItemDefinitionIndexMap.at(i::WEAPON_KNIFE_GUT).entityName,			i::WEAPON_KNIFE_GUT },
@@ -58,14 +59,21 @@ namespace Util
 			{ ItemDefinitionIndexMap.at(i::WEAPON_KNIFE_M9_BAYONET).entityName,		i::WEAPON_KNIFE_M9_BAYONET },
 			{ ItemDefinitionIndexMap.at(i::WEAPON_KNIFE_TACTICAL).entityName,		i::WEAPON_KNIFE_TACTICAL },
 			{ ItemDefinitionIndexMap.at(i::WEAPON_KNIFE_FALCHION).entityName,		i::WEAPON_KNIFE_FALCHION },
-			{ ItemDefinitionIndexMap.at(i::WEAPON_KNIFE_SURVIVAL_BOWIE).entityName,	i::WEAPON_KNIFE_SURVIVAL_BOWIE },
+			{ ItemDefinitionIndexMap.at(i::WEAPON_KNIFE_SURVIVAL_BOWIE).entityName,		i::WEAPON_KNIFE_SURVIVAL_BOWIE },
 			{ ItemDefinitionIndexMap.at(i::WEAPON_KNIFE_BUTTERFLY).entityName,		i::WEAPON_KNIFE_BUTTERFLY },
 			{ ItemDefinitionIndexMap.at(i::WEAPON_KNIFE_PUSH).entityName,			i::WEAPON_KNIFE_PUSH },
-			{ ItemDefinitionIndexMap.at(i::GLOVE_STUDDED_BLOODHOUND).entityName, 	i::GLOVE_STUDDED_BLOODHOUND},
-			{ ItemDefinitionIndexMap.at(i::GLOVE_CT_SIDE).entityName,				i::GLOVE_CT_SIDE},
-			{ ItemDefinitionIndexMap.at(i::GLOVE_T_SIDE).entityName,				i::GLOVE_T_SIDE},
-			{ ItemDefinitionIndexMap.at(i::GLOVE_SPORTY).entityName,				i::GLOVE_SPORTY},
-			{ ItemDefinitionIndexMap.at(i::GLOVE_SLICK).entityName,					i::GLOVE_SLICK},
+			{ ItemDefinitionIndexMap.at(i::WEAPON_KNIFE_URSUS).entityName,			i::WEAPON_KNIFE_URSUS },
+			{ ItemDefinitionIndexMap.at(i::WEAPON_KNIFE_GYPSY_JACKKNIFE).entityName,	i::WEAPON_KNIFE_GYPSY_JACKKNIFE },
+			{ ItemDefinitionIndexMap.at(i::WEAPON_KNIFE_STILETTO).entityName,		i::WEAPON_KNIFE_STILETTO },
+			{ ItemDefinitionIndexMap.at(i::WEAPON_KNIFE_WIDOWMAKER).entityName,		i::WEAPON_KNIFE_WIDOWMAKER },
+			{ ItemDefinitionIndexMap.at(i::WEAPON_KNIFE_CSS).entityName,		i::WEAPON_KNIFE_CSS },
+			{ ItemDefinitionIndexMap.at(i::WEAPON_KNIFE_GHOST).entityName,			i::WEAPON_KNIFE_GHOST },
+			//{ ItemDefinitionIndexMap.at(i::WEAPON_KNIFEGG).entityName,			i::WEAPON_KNIFEGG },
+			{ ItemDefinitionIndexMap.at(i::GLOVE_STUDDED_BLOODHOUND).entityName, 		i::GLOVE_STUDDED_BLOODHOUND},
+			{ ItemDefinitionIndexMap.at(i::GLOVE_CT_SIDE).entityName,			i::GLOVE_CT_SIDE},
+			{ ItemDefinitionIndexMap.at(i::GLOVE_T_SIDE).entityName,			i::GLOVE_T_SIDE},
+			{ ItemDefinitionIndexMap.at(i::GLOVE_SPORTY).entityName,			i::GLOVE_SPORTY},
+			{ ItemDefinitionIndexMap.at(i::GLOVE_SLICK).entityName,				i::GLOVE_SLICK},
 			{ ItemDefinitionIndexMap.at(i::GLOVE_LEATHER_WRAP).entityName,			i::GLOVE_LEATHER_WRAP},
 			{ ItemDefinitionIndexMap.at(i::GLOVE_MOTORCYCLE).entityName,			i::GLOVE_MOTORCYCLE},
 			{ ItemDefinitionIndexMap.at(i::GLOVE_SPECIALIST).entityName,			i::GLOVE_SPECIALIST},
@@ -134,6 +142,13 @@ namespace Util
 				case ItemDefinitionIndex::WEAPON_KNIFE_FALCHION:
 				case ItemDefinitionIndex::WEAPON_KNIFE_SURVIVAL_BOWIE:
 				case ItemDefinitionIndex::WEAPON_KNIFE_PUSH:
+				case ItemDefinitionIndex::WEAPON_KNIFE_URSUS:
+				case ItemDefinitionIndex::WEAPON_KNIFE_GYPSY_JACKKNIFE:
+				case ItemDefinitionIndex::WEAPON_KNIFE_STILETTO:
+				case ItemDefinitionIndex::WEAPON_KNIFE_WIDOWMAKER:
+				case ItemDefinitionIndex::WEAPON_KNIFE_CSS:
+				case ItemDefinitionIndex::WEAPON_KNIFE_GHOST:
+				//case ItemDefinitionIndex::WEAPON_KNIFEGG:
 					return true;
 				default:
 					return false;
@@ -207,6 +222,22 @@ namespace Util
 				case ItemDefinitionIndex::WEAPON_TEC9:
 				case ItemDefinitionIndex::WEAPON_SAWEDOFF:
 				case ItemDefinitionIndex::WEAPON_MAC10:
+					return true;
+				default:
+					return false;
+			}
+		}
+
+		bool IsScopeable(ItemDefinitionIndex index)
+		{
+			switch (index)
+			{
+				case ItemDefinitionIndex::WEAPON_AUG:
+				case ItemDefinitionIndex::WEAPON_AWP:
+				case ItemDefinitionIndex::WEAPON_G3SG1:
+				case ItemDefinitionIndex::WEAPON_SCAR20:
+				case ItemDefinitionIndex::WEAPON_SG556:
+				case ItemDefinitionIndex::WEAPON_SSG08:
 					return true;
 				default:
 					return false;

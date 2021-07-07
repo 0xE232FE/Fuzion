@@ -1,11 +1,7 @@
 #include "fovchanger.h"
 
-bool Settings::FOVChanger::enabled = false;
-bool Settings::FOVChanger::ignoreScope = true;
-float Settings::FOVChanger::value = 100.f;
-
-bool Settings::FOVChanger::viewmodelEnabled = false;
-float Settings::FOVChanger::viewmodelValue = 90.f;
+#include "../settings.h"
+#include "../interfaces.h"
 
 void FOVChanger::OverrideView(CViewSetup* pSetup)
 {

@@ -1,5 +1,15 @@
 #include "configs.h"
 
+#include <sys/stat.h>
+#include <sstream>
+
+#include "../../config.h"
+#include "../../settings.h"
+#include "../../Utils/xorstring.h"
+#include "../../ImGUI/imgui_internal.h"
+#include "../imgui.h"
+#include "../atgui.h"
+
 bool Configs::showWindow = false;
 
 void Configs::RenderWindow()
@@ -22,7 +32,7 @@ void Configs::RenderWindow()
 		return;
 	}
 
-	if (ImGui::Begin(XORSTR("Configs"), &Configs::showWindow, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_ShowBorders | ImGuiWindowFlags_NoResize))
+	if (ImGui::Begin(XORSTR("Configs"), &Configs::showWindow, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize))
 	{
 		Settings::UI::Windows::Config::open = true;
 		ImVec2 temp = ImGui::GetWindowSize();
@@ -43,10 +53,10 @@ void Configs::RenderWindow()
 		{
 			if (configItems.size() > 0 && (configItemCurrent >= 0 && configItemCurrent < (int) configItems.size()))
 			{
-				pstring path = GetConfigDirectory();
-				path << configItems[configItemCurrent] << XORSTR("/config.json");
+				std::ostringstream path;
+				path << GetConfigDirectory() << configItems[configItemCurrent] << XORSTR("/config.json");
 
-				Settings::LoadDefaultsOrSave(path);
+				Settings::LoadDefaultsOrSave(path.str());
 			}
 		}
 
@@ -55,10 +65,10 @@ void Configs::RenderWindow()
 		{
 			if (configItems.size() > 0 && (configItemCurrent >= 0 && configItemCurrent < (int) configItems.size()))
 			{
-				pstring path = GetConfigDirectory();
-				path << configItems[configItemCurrent];
+				std::ostringstream path;
+				path << GetConfigDirectory() << configItems[configItemCurrent];
 
-				Settings::DeleteConfig(path);
+				Settings::DeleteConfig(path.str());
 
 				configItems = GetConfigs();
 				configItemCurrent = -1;
@@ -73,13 +83,14 @@ void Configs::RenderWindow()
 		ImGui::SameLine();
 		if (ImGui::Button(XORSTR("Add")) && strlen(buf) > 0)
 		{
-			pstring path = GetConfigDirectory();
-			path << buf;
+			std::ostringstream path;
+			path << GetConfigDirectory() << buf;
 
-			if (!DoesFileExist(path.c_str()))
+			if (!DoesFileExist(path.str().c_str()))
 			{
-				mkdir(path.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-				Settings::LoadDefaultsOrSave(path << XORSTR("/config.json"));
+				mkdir(path.str().c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+				path << XORSTR("/config.json");
+				Settings::LoadDefaultsOrSave(path.str());
 
 				configItems = GetConfigs();
 				configItemCurrent = -1;
@@ -89,10 +100,10 @@ void Configs::RenderWindow()
 		ImGui::PushItemWidth(178);
 		if (ImGui::ListBox("", &configItemCurrent, configItems, 7))
 		{
-			pstring path = GetConfigDirectory();
-			path << configItems[configItemCurrent] << XORSTR("/config.json");
+			std::ostringstream path;
+			path << GetConfigDirectory() << configItems[configItemCurrent] << XORSTR("/config.json");
 
-			Settings::LoadConfig(path);
+			Settings::LoadConfig(path.str());
 			UI::ReloadWeaponSettings();
 		}
 		ImGui::PopItemWidth();

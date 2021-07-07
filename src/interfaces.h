@@ -1,13 +1,7 @@
 #pragma once
 
-#include <unordered_map>
-#include <sys/mman.h>
-#include <link.h>
-#include <fstream>
 #include "SDK/SDK.h"
 #include "Utils/vmt.h"
-#include "Utils/util.h"
-#include "Utils/xorstring.h"
 
 extern IBaseClientDLL* client;
 extern ISurface* surface;
@@ -40,6 +34,10 @@ extern IEngineSound* sound;
 extern ILocalize* localize;
 extern ICommandLine* commandline;
 extern CInput* input;
+extern IPanoramaUIEngine* panoramaEngine;
+extern IFileSystem* fileSystem;
+extern IGameTypes* gameTypes;
+extern CItemSystem* itemSystem;
 
 extern VMT* panelVMT;
 extern VMT* clientVMT;
@@ -53,10 +51,13 @@ extern VMT* surfaceVMT;
 extern VMT* launcherMgrVMT;
 extern VMT* engineVGuiVMT;
 extern VMT* soundVMT;
+extern VMT* uiEngineVMT;
 
 extern LineGoesThroughSmokeFn LineGoesThroughSmoke;
 extern InitKeyValuesFn InitKeyValues;
 extern LoadFromBufferFn LoadFromBuffer;
+
+extern GetLocalClientFn GetLocalClient;
 
 //extern RandomSeedFn RandomSeed;
 //extern RandomFloatFn RandomFloat;
@@ -67,17 +68,9 @@ extern LoadFromBufferFn LoadFromBuffer;
 extern SetNamedSkyBoxFn SetNamedSkyBox;
 
 extern int* nPredictionRandomSeed;
-extern bool* bSendPacket;
 extern CMoveData* g_MoveData;
 extern bool* s_bOverridePostProcessingDisable;
-extern uint8_t* CrosshairWeaponTypeCheck;
-extern uint8_t* CamThinkSvCheatsCheck;
-
-extern uintptr_t oSwapWindow;
-extern uintptr_t* swapWindowJumpAddress;
-
-extern uintptr_t oPollEvent;
-extern uintptr_t* polleventJumpAddress;
+extern ConVar *cl_csm_enabled;
 
 namespace Interfaces
 {

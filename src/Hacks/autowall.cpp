@@ -1,4 +1,10 @@
 #include "autowall.h"
+
+#include "aimbot.h"
+#include "../Utils/math.h"
+#include "../Utils/entity.h"
+#include "../interfaces.h"
+
 static float GetHitgroupDamageMultiplier(HitGroups iHitGroup)
 {
 	switch (iHitGroup)
@@ -44,7 +50,7 @@ static bool TraceToExit(Vector& end, trace_t* enter_trace, Vector start, Vector 
 		distance += 4.0f;
 		end = start + dir * distance;
 
-		auto point_contents = trace->GetPointContents(end, MASK_SHOT_HULL | CONTENTS_HITBOX, NULL);
+		auto point_contents = trace->GetPointContents(end, MASK_SHOT_HULL | CONTENTS_HITBOX, nullptr);
 
 		if (point_contents & MASK_SHOT_HULL && !(point_contents & CONTENTS_HITBOX))
 			continue;
@@ -213,7 +219,7 @@ static bool SimulateFireBullet(C_BaseCombatWeapon* pWeapon, bool teamCheck, Auto
 			data.current_damage *= powf(weaponInfo->GetRangeModifier(), data.trace_length * 0.002f);
 
 			C_BasePlayer* player = (C_BasePlayer*) data.enter_trace.m_pEntityHit;
-			if (teamCheck && player->GetTeam() == localplayer->GetTeam())
+			if (teamCheck && Entity::IsTeamMate(player, localplayer))
 				return false;
 
 			ScaleDamage(data.enter_trace.hitgroup, player, weaponInfo->GetWeaponArmorRatio(), data.current_damage);
@@ -240,7 +246,8 @@ float Autowall::GetDamage(const Vector& point, bool teamCheck, FireBulletData& f
 	QAngle angles = Math::CalcAngle(data.src, dst);
 	Math::AngleVectors(angles, data.direction);
 
-	data.direction.NormalizeInPlace();
+    Vector tmp = data.direction;
+    data.direction = tmp.Normalize();
 
 	C_BaseCombatWeapon* activeWeapon = (C_BaseCombatWeapon*) entityList->GetClientEntityFromHandle(localplayer->GetActiveWeapon());
 	if (!activeWeapon)

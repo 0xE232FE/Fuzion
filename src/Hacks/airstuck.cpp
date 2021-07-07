@@ -1,7 +1,7 @@
 #include "airstuck.h"
 
-bool Settings::Airstuck::enabled = false;
-ButtonCode_t Settings::Airstuck::key = ButtonCode_t::KEY_F;
+#include "../settings.h"
+#include "../interfaces.h"
 
 void Airstuck::CreateMove(CUserCmd* cmd)
 {

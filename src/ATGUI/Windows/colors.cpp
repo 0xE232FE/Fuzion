@@ -1,5 +1,12 @@
 #include "colors.h"
 
+#include "../../settings.h"
+#include "../../Utils/xorstring.h"
+#include "../../ImGUI/imgui_internal.h"
+#include "../atgui.h"
+
+#pragma GCC diagnostic ignored "-Wformat-security"
+
 bool Colors::showWindow = false;
 
 void Colors::RenderWindow()
@@ -50,8 +57,8 @@ void Colors::RenderWindow()
 			this->type = HEALTHCOLORVAR_TYPE;
 		}
 	};
-
-	ColorListVar colors[] = {
+	
+	static const ColorListVar colors[] = {
 			{ "UI Main", &Settings::UI::mainColor },
 			{ "UI Body", &Settings::UI::bodyColor },
 			{ "UI Font", &Settings::UI::fontColor },
@@ -81,7 +88,24 @@ void Colors::RenderWindow()
 			{ "ESP - Flashbang", &Settings::ESP::flashbangColor },
 			{ "ESP - Grenade", &Settings::ESP::grenadeColor },
 			{ "ESP - Molotov", &Settings::ESP::molotovColor },
-			{ "ESP - Skeleton", &Settings::ESP::Skeleton::color },
+			{ "ESP - Bump Mine", &Settings::ESP::mineColor },
+			{ "ESP - Breach Charge", &Settings::ESP::chargeColor },
+			{ "ESP - Skeleton (Team)", &Settings::ESP::Skeleton::allyColor },
+			{ "ESP - Skeleton (Enemy)", &Settings::ESP::Skeleton::enemyColor },
+			{ "ESP - Player Info (Team)", &Settings::ESP::allyInfoColor },
+			{ "ESP - Player Info (Enemy)", &Settings::ESP::enemyInfoColor },
+			{ "ESP - Danger Zone: Weapon Upgrade", &Settings::ESP::DangerZone::upgradeColor },
+			{ "ESP - Danger Zone: Loot Crate", &Settings::ESP::DangerZone::lootcrateColor },
+			{ "ESP - Danger Zone: Radar Jammer", &Settings::ESP::DangerZone::radarjammerColor },
+			{ "ESP - Danger Zone: Explosive Barrel", &Settings::ESP::DangerZone::barrelColor },
+			{ "ESP - Danger Zone: Ammo Box", &Settings::ESP::DangerZone::ammoboxColor },
+			{ "ESP - Danger Zone: Safe", &Settings::ESP::DangerZone::safeColor },
+			{ "ESP - Danger Zone: Sentry Turret", &Settings::ESP::DangerZone::dronegunColor },
+			{ "ESP - Danger Zone: Drone", &Settings::ESP::DangerZone::droneColor },
+			{ "ESP - Danger Zone: Cash", &Settings::ESP::DangerZone::cashColor },
+			{ "ESP - Danger Zone: Tablet", &Settings::ESP::DangerZone::tabletColor },
+			{ "ESP - Danger Zone: Healthshot", &Settings::ESP::DangerZone::healthshotColor },
+			{ "ESP - Danger Zone: Melee", &Settings::ESP::DangerZone::meleeColor },
 			{ "Chams - Team", &Settings::ESP::Chams::allyColor },
 			{ "Chams - Team Visible", &Settings::ESP::Chams::allyVisibleColor },
 			{ "Chams - Enemy", &Settings::ESP::Chams::enemyColor },
@@ -95,6 +119,8 @@ void Colors::RenderWindow()
 			{ "Grenade Helper - Smoke Info", &Settings::GrenadeHelper::infoSmoke },
 			{ "Grenade Helper - Molotov Info", &Settings::GrenadeHelper::infoMolotov },
 			{ "Grenade Helper - Flash Info", &Settings::GrenadeHelper::infoFlash },
+			{ "Grenade Prediction - Line", &Settings::GrenadePrediction::color },
+			{ "Event log", &Settings::Eventlog::color },
 			{ "Radar - Enemy", &Settings::Radar::enemyColor },
 			{ "Radar - Team", &Settings::Radar::allyColor },
 			{ "Radar - Enemy Visible", &Settings::Radar::enemyVisibleColor },
@@ -123,7 +149,7 @@ void Colors::RenderWindow()
 
 	static int colorSelected = 0;
 
-	if (ImGui::Begin("Colors", &Colors::showWindow, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_ShowBorders | ImGuiWindowFlags_NoResize))
+	if (ImGui::Begin(XORSTR("Colors"), &Colors::showWindow, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize))
 	{
 		Settings::UI::Windows::Colors::open = true;
 		ImVec2 temp = ImGui::GetWindowSize();
@@ -132,10 +158,10 @@ void Colors::RenderWindow()
 		temp = ImGui::GetWindowPos();
 		Settings::UI::Windows::Colors::posX = (int)temp.x;
 		Settings::UI::Windows::Colors::posY = (int)temp.y;
-		ImGui::Columns(2, NULL, true);
+		ImGui::Columns(2, nullptr, true);
 		{
 			ImGui::PushItemWidth(-1);
-			ImGui::ListBox("##COLORSELECTION", &colorSelected, colorNames, IM_ARRAYSIZE(colorNames), 12);
+			ImGui::ListBox(XORSTR("##COLORSELECTION"), &colorSelected, colorNames, IM_ARRAYSIZE(colorNames), 12);
 			ImGui::PopItemWidth();
 		}
 		ImGui::NextColumn();
@@ -143,19 +169,19 @@ void Colors::RenderWindow()
 			if (colors[colorSelected].type == ColorListVar::HEALTHCOLORVAR_TYPE)
 			{
 				UI::ColorPicker4((float*)colors[colorSelected].healthColorVarPtr);
-				ImGui::Checkbox("Rainbow", &colors[colorSelected].healthColorVarPtr->rainbow);
+				ImGui::Checkbox(XORSTR("Rainbow"), &colors[colorSelected].healthColorVarPtr->rainbow);
 				ImGui::SameLine();
-				ImGui::Checkbox("Health-Based", &colors[colorSelected].healthColorVarPtr->hp);
+				ImGui::Checkbox(XORSTR("Health-Based"), &colors[colorSelected].healthColorVarPtr->hp);
 				ImGui::PushItemWidth(-1);
-				ImGui::SliderFloat("##RAINBOWSPEED", &colors[colorSelected].healthColorVarPtr->rainbowSpeed, 0.f, 1.f, "Rainbow Speed: %0.3f");
+				ImGui::SliderFloat(XORSTR("##RAINBOWSPEED"), &colors[colorSelected].healthColorVarPtr->rainbowSpeed, 0.f, 1.f, "Rainbow Speed: %0.3f");
 				ImGui::PopItemWidth();
 			}
 			else
 			{
 				UI::ColorPicker4((float*)colors[colorSelected].colorVarPtr);
-				ImGui::Checkbox("Rainbow", &colors[colorSelected].colorVarPtr->rainbow);
+				ImGui::Checkbox(XORSTR("Rainbow"), &colors[colorSelected].colorVarPtr->rainbow);
 				ImGui::PushItemWidth(-1);
-				ImGui::SliderFloat("##RAINBOWSPEED", &colors[colorSelected].colorVarPtr->rainbowSpeed, 0.f, 1.f, "Rainbow Speed: %0.3f");
+				ImGui::SliderFloat(XORSTR("##RAINBOWSPEED"), &colors[colorSelected].colorVarPtr->rainbowSpeed, 0.f, 1.f, "Rainbow Speed: %0.3f");
 				ImGui::PopItemWidth();
 			}
 		}

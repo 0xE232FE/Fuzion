@@ -1,6 +1,11 @@
 #include "resolver.h"
 
-bool Settings::Resolver::resolveAll = false;
+#include "../Utils/xorstring.h"
+#include "../Utils/entity.h"
+#include "../settings.h"
+#include "../interfaces.h"
+#include "antiaim.h"
+
 std::vector<int64_t> Resolver::Players = { };
 
 std::vector<std::pair<C_BasePlayer*, QAngle>> player_data;
@@ -25,7 +30,7 @@ void Resolver::FrameStageNotify(ClientFrameStage_t stage)
 				|| player->GetDormant()
 				|| !player->GetAlive()
 				|| player->GetImmune()
-				|| player->GetTeam() == localplayer->GetTeam())
+				|| Entity::IsTeamMate(player, localplayer))
 				continue;
 
 			IEngineClient::player_info_t entityInformation;
@@ -36,7 +41,10 @@ void Resolver::FrameStageNotify(ClientFrameStage_t stage)
 
 			player_data.push_back(std::pair<C_BasePlayer*, QAngle>(player, *player->GetEyeAngles()));
 
-			player->GetEyeAngles()->y = *player->GetLowerBodyYawTarget();
+			//player->GetEyeAngles()->y = *player->GetLowerBodyYawTarget();
+			player->GetEyeAngles()->y = (rand() % 2) ?
+                                        player->GetEyeAngles()->y + (AntiAim::GetMaxDelta(player->GetAnimState()) * 0.66f) :
+                                        player->GetEyeAngles()->y - (AntiAim::GetMaxDelta(player->GetAnimState()) * 0.66f);
 		}
 	}
 	else if (stage == ClientFrameStage_t::FRAME_RENDER_END)

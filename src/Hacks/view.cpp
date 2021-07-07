@@ -1,7 +1,7 @@
 #include "view.h"
 
-bool Settings::View::NoAimPunch::enabled = false;
-bool Settings::View::NoViewPunch::enabled = false;
+#include "../settings.h"
+#include "../interfaces.h"
 
 QAngle old_view_punch_angle;
 QAngle old_aim_punch_angle;

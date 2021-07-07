@@ -1,7 +1,8 @@
 #include "autoblock.h"
 
-bool Settings::Autoblock::enabled = false;
-ButtonCode_t Settings::Autoblock::key = ButtonCode_t::KEY_6;
+#include "../Utils/math.h"
+#include "../settings.h"
+#include "../interfaces.h"
 
 void Autoblock::CreateMove(CUserCmd* cmd)
 {
@@ -48,7 +49,7 @@ void Autoblock::CreateMove(CUserCmd* cmd)
 	Math::NormalizeAngles(angles);
 
 	if (angles.y < 0.0f)
-		cmd->sidemove = 450.f;
+		cmd->sidemove = 250.f;
 	else if (angles.y > 0.0f)
-		cmd->sidemove = -450.f;
+		cmd->sidemove = -250.f;
 }

@@ -1,7 +1,6 @@
 #pragma once
 
-#include <cstdio>
-#include "SDK/vector.h"
+#include <cstddef>
 
 struct COffsets
 {
@@ -33,6 +32,7 @@ struct COffsets
 		std::ptrdiff_t m_MoveType;
 		std::ptrdiff_t m_Collision;
 		std::ptrdiff_t m_bSpotted;
+		std::ptrdiff_t m_bSpottedByMask;
 	} DT_BaseEntity;
 
 	struct
@@ -116,6 +116,7 @@ struct COffsets
 		std::ptrdiff_t m_flFlashDuration;
 		std::ptrdiff_t m_flFlashMaxAlpha;
 		std::ptrdiff_t m_flLowerBodyYawTarget;
+		std::ptrdiff_t m_nSurvivalTeam;
 	} DT_CSPlayer;
 
 	struct
@@ -129,6 +130,7 @@ struct COffsets
 		std::ptrdiff_t m_nFallbackSeed;
 		std::ptrdiff_t m_flFallbackWear;
 		std::ptrdiff_t m_nFallbackStatTrak;
+		std::ptrdiff_t m_bInitialized;
 	} DT_BaseAttributableItem;
 
 	struct
@@ -140,7 +142,9 @@ struct COffsets
 
 	struct
 	{
+		std::ptrdiff_t m_bReloadVisuallyComplete;
 		std::ptrdiff_t m_fAccuracyPenalty;
+        std::ptrdiff_t m_flPostponeFireReadyTime;
 	} DT_WeaponCSBase;
 
 	struct
@@ -252,11 +256,50 @@ struct COffsets
 		std::ptrdiff_t m_numBestOfMaps;
 		std::ptrdiff_t m_arrTournamentActiveCasterAccounts;
 	} DT_CSGameRulesProxy;
+
+	struct
+	{
+		std::ptrdiff_t m_bBrokenOpen;
+		std::ptrdiff_t m_flRadius;
+	} DT_BRC4Target;
+
+	struct
+	{
+		std::ptrdiff_t m_vecAttentionTarget;
+		std::ptrdiff_t m_vecTargetOffset;
+		std::ptrdiff_t m_iHealth;
+		std::ptrdiff_t m_bHasTarget;
+	} DT_Dronegun;
+
+	struct
+	{
+		std::ptrdiff_t m_bRenderInPSPM;
+		std::ptrdiff_t m_bRenderInTablet;
+		std::ptrdiff_t m_iHealth;
+		std::ptrdiff_t m_iMaxHealth;
+	} DT_PhysPropLootCrate;
+
+	struct
+	{
+		std::ptrdiff_t m_nSequence;
+		std::ptrdiff_t m_bClientSideAnimation;
+		std::ptrdiff_t m_nSkin;
+		std::ptrdiff_t m_nBody;
+		std::ptrdiff_t m_flPoseParameter;
+		std::ptrdiff_t m_nForceBone;
+		std::ptrdiff_t m_nHitboxSet;
+		std::ptrdiff_t m_nMuzzleFlashParity;
+		std::ptrdiff_t m_hLightingOrigin;
+		std::ptrdiff_t m_bClientSideFrameReset;
+	} DT_BaseAnimating;
 };
 
 namespace Offsets
 {
-	void GetOffsets();
+	void GetNetVarOffsets();
+
+	extern unsigned int playerAnimStateOffset;
+    extern unsigned int playerAnimOverlayOffset;
 }
 
 extern COffsets offsets;

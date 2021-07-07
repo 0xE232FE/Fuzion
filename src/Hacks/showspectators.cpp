@@ -1,6 +1,11 @@
 #include "showspectators.h"
 
-bool Settings::ShowSpectators::enabled = false;
+#include "../Utils/xorstring.h"
+#include "../settings.h"
+#include "../interfaces.h"
+#include "../ATGUI/atgui.h"
+
+#pragma GCC diagnostic ignored "-Wformat-security"
 
 std::list<int> ShowSpectators::GetObservervators(int playerId)
 {
@@ -59,7 +64,7 @@ void ShowSpectators::RenderWindow()
 		ImGui::SetNextWindowPos(ImVec2(Settings::UI::Windows::Spectators::posX, Settings::UI::Windows::Spectators::posY), ImGuiSetCond_FirstUseEver);
 		ImGui::SetNextWindowSize(ImVec2(Settings::UI::Windows::Spectators::sizeX, Settings::UI::Windows::Spectators::sizeY), ImGuiSetCond_FirstUseEver);
 	}
-	if (ImGui::Begin(XORSTR("Spectators"), &Settings::ShowSpectators::enabled, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_ShowBorders))
+	if (ImGui::Begin(XORSTR("Spectators"), &Settings::ShowSpectators::enabled, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar ))
 	{
 		ImVec2 temp = ImGui::GetWindowSize();
 		Settings::UI::Windows::Spectators::sizeX = (int)temp.x;

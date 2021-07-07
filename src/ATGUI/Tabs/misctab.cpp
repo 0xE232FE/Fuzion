@@ -1,17 +1,38 @@
 #include "misctab.h"
 
+#include <sys/stat.h>
+#include <sstream>
+
+#include "../../config.h"
+#include "../../interfaces.h"
+
+#include "../../settings.h"
+#include "../../Utils/xorstring.h"
+#include "../imgui.h"
+#include "../../ImGUI/imgui_internal.h"
+#include "../atgui.h"
+
+#include "../../Hacks/namechanger.h"
+#include "../../Hacks/namestealer.h"
+#include "../../Hacks/grenadehelper.h"
+#include "../../Hacks/clantagchanger.h"
+#include "../../Hacks/valvedscheck.h"
+
+#pragma GCC diagnostic ignored "-Wformat-security"
+
 static char nickname[127] = "";
 
 void Misc::RenderTab()
 {
-	const char* strafeTypes[] = { "Forwards", "Backwards", "Left", "Right", "Rage" };
-	const char* animationTypes[] = { "Static", "Marquee", "Words", "Letters" };
-	const char* spammerTypes[] = { "None", "Normal", "Positions" };
-	const char* teams[] = { "Allies", "Enemies", "Both" };
-	const char* grenadeTypes[] = { "FLASH", "SMOKE", "MOLOTOV", "HEGRENADE" };
-	const char* throwTypes[] = { "NORMAL", "RUN", "JUMP", "WALK" };
+	static const char* strafeTypes[] = { "Forwards", "Backwards", "Left", "Right", "Rage" };
+	static const char* animationTypes[] = { "Static", "Marquee", "Words", "Letters" };
+	static const char* spammerTypes[] = { "None", "Normal", "Positions" };
+	static const char* teams[] = { "Allies", "Enemies", "Both" };
+	static const char* grenadeTypes[] = { "FLASH", "SMOKE", "MOLOTOV", "HEGRENADE" };
+	static const char* throwTypes[] = { "NORMAL", "RUN", "JUMP", "WALK" };
+	static const char* angleTypes[] = { "Real", "Fake" };
 
-	ImGui::Columns(2, NULL, true);
+	ImGui::Columns(2, nullptr, true);
 	{
 		ImGui::BeginChild(XORSTR("Child1"), ImVec2(0, 0), true);
 		{
@@ -22,12 +43,12 @@ void Misc::RenderTab()
 
 			ImGui::Columns(1);
 			ImGui::Separator();
-			
+
 			if (Settings::BHop::enabled)
-			{	
+			{
 				ImGui::Text(XORSTR("Humanizing"));
 				ImGui::Separator();
-				ImGui::Columns(2, NULL, true);
+				ImGui::Columns(2, nullptr, true);
 				{
 					ImGui::Checkbox(XORSTR("Hop Chance"), &Settings::BHop::Chance::enabled);
 					ImGui::Checkbox(XORSTR("Min Hops"), &Settings::BHop::Hops::enabledMin);
@@ -43,22 +64,24 @@ void Misc::RenderTab()
 				ImGui::Separator();
 			}
 
-			ImGui::Columns(2, NULL, true);
+			ImGui::Columns(2, nullptr, true);
 			{
 				ImGui::Checkbox(XORSTR("Auto Strafe"), &Settings::AutoStrafe::enabled);
 				ImGui::Checkbox(XORSTR("Edge Jump"), &Settings::EdgeJump::enabled);
 			}
 			ImGui::NextColumn();
 			{
-				ImGui::PushItemWidth(-1);
+				ImGui::PushItemWidth(Settings::AutoStrafe::type == AutostrafeType::AS_RAGE ? ImGui::CalcItemWidth() : -1);
 				ImGui::Combo(XORSTR("##STRAFETYPE"), (int*)& Settings::AutoStrafe::type, strafeTypes, IM_ARRAYSIZE(strafeTypes));
+
+				if (Settings::AutoStrafe::type == AutostrafeType::AS_RAGE)
+				{
+					ImGui::SameLine();
+					ImGui::Checkbox(XORSTR("Silent"), &Settings::AutoStrafe::silent);
+				}
+
 				ImGui::PopItemWidth();
 				UI::KeyBindButton(&Settings::EdgeJump::key);
-			}
-
-			if (Settings::AutoStrafe::type == AutostrafeType::AS_RAGE)
-			{
-				ImGui::Checkbox(XORSTR("Silent"), &Settings::AutoStrafe::silent);
 			}
 
 			ImGui::Columns(1);
@@ -66,7 +89,7 @@ void Misc::RenderTab()
 			ImGui::Text(XORSTR("Spammer"));
 			ImGui::Separator();
 
-			ImGui::Columns(3, NULL, true);
+			ImGui::Columns(3, nullptr, true);
 			{
 				ImGui::Checkbox(XORSTR("Kill Messages"), &Settings::Spammer::KillSpammer::enabled);
 			}
@@ -114,7 +137,7 @@ void Misc::RenderTab()
 			ImGui::Columns(1);
 			ImGui::Checkbox(XORSTR("Radio Commands"), &Settings::Spammer::RadioSpammer::enabled);
 
-			ImGui::Columns(3, NULL, true);
+			ImGui::Columns(3, nullptr, true);
 			{
 				ImGui::Combo(XORSTR("###SPAMMERYPE"), (int*)&Settings::Spammer::type, spammerTypes, IM_ARRAYSIZE(spammerTypes));
 			}
@@ -183,7 +206,7 @@ void Misc::RenderTab()
 			ImGui::Separator();
 			ImGui::Text(XORSTR("FOV"));
 			ImGui::Separator();
-			ImGui::Columns(2, NULL, true);
+			ImGui::Columns(2, nullptr, true);
 			{
 				ImGui::Checkbox(XORSTR("FOV"), &Settings::FOVChanger::enabled);
 				ImGui::Checkbox(XORSTR("Viewmodel FOV"), &Settings::FOVChanger::viewmodelEnabled);
@@ -200,21 +223,23 @@ void Misc::RenderTab()
 			ImGui::Separator();
 			ImGui::Text(XORSTR("Third Person"));
 			ImGui::Separator();
-			ImGui::Columns(2, NULL, true);
+			ImGui::Columns(2, nullptr, true);
 			{
 				ImGui::Checkbox(XORSTR("Enabled"), &Settings::ThirdPerson::enabled);
+			    ImGui::Text(XORSTR("Showed Angle"));
 			}
 			ImGui::NextColumn();
 			{
 				ImGui::PushItemWidth(-1);
 				ImGui::SliderFloat(XORSTR("##TPCAMOFFSET"), &Settings::ThirdPerson::distance, 0.f, 500.f, XORSTR("Camera Offset: %0.f"));
+                ImGui::Combo(XORSTR("Showed Angle"), (int*)& Settings::ThirdPerson::type, angleTypes, IM_ARRAYSIZE(angleTypes));
 				ImGui::PopItemWidth();
 			}
 			ImGui::Columns(1);
 			ImGui::Separator();
 			ImGui::Text(XORSTR("Grenade Helper"));
 			ImGui::Separator();
-			ImGui::Columns(2, NULL, true);
+			ImGui::Columns(2, nullptr, true);
 			{
 				ImGui::Checkbox(XORSTR("Enabled ###ghenabled"), &Settings::GrenadeHelper::enabled);
 			}
@@ -252,18 +277,6 @@ void Misc::RenderTab()
 					static int tType = (int)ThrowType::NORMAL;
 					static int gType = (int)GrenadeType::SMOKE;
 
-					if (engine->IsInGame())
-					{
-						C_BasePlayer* localPlayer = (C_BasePlayer*) entityList->GetClientEntity(engine->GetLocalPlayer());
-						if (localPlayer)
-						{
-							C_BaseCombatWeapon *activeWeapon = (C_BaseCombatWeapon *) entityList->GetClientEntityFromHandle(
-									localPlayer->GetActiveWeapon());
-							if (activeWeapon &&
-								activeWeapon->GetCSWpnData()->GetWeaponType() == CSWeaponType::WEAPONTYPE_GRENADE)
-								gType = (int) GetGrenadeType(activeWeapon);
-						}
-					}
 					ImGui::Columns(1);
 					ImGui::PushItemWidth(500);
 					ImGui::InputText("", inputName, sizeof(inputName));
@@ -276,10 +289,12 @@ void Misc::RenderTab()
 						{
 							GrenadeInfo n = GrenadeInfo((GrenadeType)gType, localPlayer->GetEyePosition(), *localPlayer->GetVAngles(), (ThrowType)tType, inputName);
 							Settings::GrenadeHelper::grenadeInfos.push_back(n);
-							pstring path = GetGhConfigDirectory() << Settings::GrenadeHelper::actMapName;
-							if (!DoesFileExist(path.c_str()))
-								mkdir(path.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-							Settings::SaveGrenadeInfo(path << XORSTR("/config.json"));
+							std::ostringstream path;
+							path << GetGhConfigDirectory() << Settings::GrenadeHelper::actMapName;
+							if (!DoesFileExist(path.str().c_str()))
+								mkdir(path.str().c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+							path << XORSTR("/config.json");
+							Settings::SaveGrenadeInfo(path.str());
 						}
 						strcpy(inputName, "");
 					}
@@ -293,19 +308,21 @@ void Misc::RenderTab()
 					auto lambda =[](void* data, int idx, const char** out_text)
 					{
 						*out_text = Settings::GrenadeHelper::grenadeInfos.at(idx).name.c_str();
-						return *out_text != NULL;
+						return *out_text != nullptr;
 					};
-					ImGui::ListBox("", &throwMessageCurrent, lambda, NULL, Settings::GrenadeHelper::grenadeInfos.size(), 7);
+					ImGui::ListBox("", &throwMessageCurrent, lambda, nullptr, Settings::GrenadeHelper::grenadeInfos.size(), 7);
 					ImGui::PopItemWidth();
 					ImGui::Columns(1);
 					if (ImGui::Button(XORSTR("Remove"),  ImVec2(ImGui::GetWindowWidth(), 30)))
 						if (throwMessageCurrent > -1 && (int) Settings::GrenadeHelper::grenadeInfos.size() > throwMessageCurrent)
 						{
 							Settings::GrenadeHelper::grenadeInfos.erase(Settings::GrenadeHelper::grenadeInfos.begin() + throwMessageCurrent);
-							pstring path = GetGhConfigDirectory() << Settings::GrenadeHelper::actMapName;
-							if (!DoesFileExist(path.c_str()))
-								mkdir(path.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-							Settings::SaveGrenadeInfo(path << XORSTR("/config.json"));
+							std::ostringstream path;
+							path << GetGhConfigDirectory() << Settings::GrenadeHelper::actMapName;
+							if (!DoesFileExist(path.str().c_str()))
+								mkdir(path.str().c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+							path << XORSTR("/config.json");
+							Settings::SaveGrenadeInfo(path.str());
 						}
 					ImGui::EndPopup();
 				}
@@ -321,24 +338,36 @@ void Misc::RenderTab()
 		{
 			ImGui::Text(XORSTR("Clantag"));
 			ImGui::Separator();
-			ImGui::Checkbox(XORSTR("Enabled"), &Settings::ClanTagChanger::enabled);
-			ImGui::Separator();
-			ImGui::Columns(2, NULL, true);
+			ImGui::Columns(2, nullptr, true);
 			{
 				ImGui::PushItemWidth(-1);
-				if (ImGui::InputText(XORSTR("##CLANTAG"), Settings::ClanTagChanger::value, 30))
+				ImGui::Checkbox(XORSTR("Enabled"), &Settings::ClanTagChanger::enabled);
+				ImGui::PopItemWidth();
+			}
+			ImGui::NextColumn();
+			{
+				ImGui::PushItemWidth(-1);
+				if (ImGui::Button(XORSTR("Update Clantag"), ImVec2(-1, 0)))
 					ClanTagChanger::UpdateClanTagCallback();
+				ImGui::PopItemWidth();
+			}
+			ImGui::Columns(1);
+			ImGui::Separator();
+			ImGui::Columns(2, nullptr, true);
+			{
+				ImGui::PushItemWidth(-1);
+				ImGui::InputText(XORSTR("##CLANTAG"), Settings::ClanTagChanger::value, 30);
 				ImGui::PopItemWidth();
 
 				ImGui::ItemSize(ImVec2(0.0f, 0.0f), 0.0f);
-				ImGui::Text(XORSTR("Animation Speed"));
+				ImGui::Text(XORSTR("Animation Delay(ms)"));
 			}
 			ImGui::NextColumn();
 			{
 				ImGui::PushItemWidth(-1);
 				if (ImGui::Combo(XORSTR("##ANIMATIONTYPE"), (int*)& Settings::ClanTagChanger::type, animationTypes, IM_ARRAYSIZE(animationTypes)))
 					ClanTagChanger::UpdateClanTagCallback();
-				if (ImGui::SliderInt(XORSTR("##ANIMATIONSPEED"), &Settings::ClanTagChanger::animationSpeed, 0, 2000))
+				if (ImGui::SliderInt(XORSTR("##ANIMATIONSPEED"), &Settings::ClanTagChanger::animationSpeed, 500, 2000))
 					ClanTagChanger::UpdateClanTagCallback();
 				ImGui::PopItemWidth();
 			}
@@ -382,7 +411,7 @@ void Misc::RenderTab()
 
 				ImGui::EndPopup();
 			}
-			ImGui::Columns(2, NULL, true);
+			ImGui::Columns(2, nullptr, true);
 			{
 				if (ImGui::Checkbox(XORSTR("Name Stealer"), &Settings::NameStealer::enabled))
 					NameStealer::entityId = -1;
@@ -396,7 +425,7 @@ void Misc::RenderTab()
 			ImGui::Separator();
 			ImGui::Text(XORSTR("Other"));
 			ImGui::Separator();
-			ImGui::Columns(2, NULL, true);
+			ImGui::Columns(2, nullptr, true);
 			{
 				ImGui::Checkbox(XORSTR("Fake Lag"), &Settings::FakeLag::enabled);
 				ImGui::Checkbox(XORSTR("Adaptive Fake Lag"), &Settings::FakeLag::adaptive);
@@ -407,6 +436,7 @@ void Misc::RenderTab()
 				ImGui::Checkbox(XORSTR("Auto Defuse"), &Settings::AutoDefuse::enabled);
 				ImGui::Checkbox(XORSTR("Sniper Crosshair"), &Settings::SniperCrosshair::enabled);
 				ImGui::Checkbox(XORSTR("Disable post-processing"), &Settings::DisablePostProcessing::enabled);
+				ImGui::Checkbox(XORSTR("No Duck Cooldown"), &Settings::NoDuckCooldown::enabled);
 			}
 			ImGui::NextColumn();
 			{
@@ -419,6 +449,7 @@ void Misc::RenderTab()
 				UI::KeyBindButton(&Settings::Autoblock::key);
 				UI::KeyBindButton(&Settings::JumpThrow::key);
 				ImGui::Checkbox(XORSTR("Silent Defuse"), &Settings::AutoDefuse::silent);
+				ImGui::Checkbox(XORSTR("Attempt NoFall"), &Settings::NoFall::enabled);
 			}
 			ImGui::Columns(1);
 			ImGui::Separator();

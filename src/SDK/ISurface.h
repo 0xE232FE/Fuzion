@@ -1,5 +1,8 @@
 #pragma once
 
+#include "IAppSystem.h"
+#include "common.h"
+
 struct Vertex_t
 {
 	Vector2D m_Position;
@@ -103,6 +106,18 @@ public:
 		return getvfunc<oDrawSetTexture>(this, 38)(this, textureID);
 	}
 
+	void DrawTexturedRect(int x0, int y0, int x1, int y1)
+	{
+		typedef void (* oDrawTexturedRect)(void*, int, int, int, int);
+		return getvfunc<oDrawTexturedRect>(this, 41)(this, x0, y0, x1, y1);
+	}
+
+	bool IsTextureIDValid(unsigned int textureID)
+	{
+		typedef bool (* oIsTextureIDValid)(void*, unsigned int);
+		return getvfunc<oIsTextureIDValid>(this, 42)(this, textureID);
+	}
+
 	int CreateNewTextureID(bool procedural)
 	{
 		typedef int (* oCreateNewTextureID)(void*, bool);
@@ -125,6 +140,11 @@ public:
 	{
 		typedef void (* oGetTextSize)(void*, unsigned long long font, const wchar_t *text, int &wide, int &tall);
 		return getvfunc<oGetTextSize>(this, 79)(this, font, text, wide, tall);
+	}
+	void DrawOutlinedCircle(int x0, int y0, int x1, int y1)
+	{
+		typedef void(* oDrawOutlinedCircle)(void*, int, int, int, int);
+		return getvfunc<oDrawOutlinedCircle>(this, 103)(this, x0, y0, x1, y1);
 	}
 
 	void DrawTexturedPolygon(int vtxCount, FontVertex_t *vtx, bool bClipVertices = true)

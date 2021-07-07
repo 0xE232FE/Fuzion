@@ -1,32 +1,37 @@
 #include "grenadehelper.h"
 
-std::vector<GrenadeInfo> Settings::GrenadeHelper::grenadeInfos = {};
-bool Settings::GrenadeHelper::enabled = false;
-bool Settings::GrenadeHelper::onlyMatchingInfos = true;
-bool Settings::GrenadeHelper::aimAssist = false;
-float Settings::GrenadeHelper::aimDistance = 75;
-float Settings::GrenadeHelper::aimFov = 45;
-float Settings::GrenadeHelper::aimStep = 5;
+#include "../Utils/xorstring.h"
+#include "../Utils/draw.h"
+#include "../Utils/math.h"
+#include "../config.h"
+#include "../fonts.h"
+#include "../settings.h"
+#include "../interfaces.h"
 
-ColorVar Settings::GrenadeHelper::aimDot = ImColor(10, 10, 200, 255);
-ColorVar Settings::GrenadeHelper::aimLine = ImColor(200, 200, 200, 255);
-ColorVar Settings::GrenadeHelper::infoHE = ImColor(7, 183, 7, 255);
-ColorVar Settings::GrenadeHelper::infoMolotov = ImColor(236, 0, 0, 255);
-ColorVar Settings::GrenadeHelper::infoSmoke = ImColor(172, 172, 172, 255);
-ColorVar Settings::GrenadeHelper::infoFlash = ImColor(255, 255, 0, 255);
+#include "skinchanger.h" //GetLocalClient
+#include "../Hooks/hooks.h"
+
+#include <sstream>
 
 bool shotLastTick = false;
-pstring Settings::GrenadeHelper::actMapName = pstring();
 
-GrenadeType GetGrenadeType(C_BaseCombatWeapon *wpn)
+GrenadeType GetGrenadeType(C_BaseCombatWeapon* wpn)
 {
-	if (!strcmp(wpn->GetCSWpnData()->szClassName, XORSTR("weapon_hegrenade")))
-		return GrenadeType::HEGRENADE;
-	if (!strcmp(wpn->GetCSWpnData()->szClassName, XORSTR("weapon_smokegrenade")))
-		return GrenadeType::SMOKE;
-	if (!strcmp(wpn->GetCSWpnData()->szClassName, XORSTR("weapon_flashbang")) || !strcmp(wpn->GetCSWpnData()->szClassName, XORSTR("weapon_decoy")))
-		return GrenadeType::FLASH;
-	return GrenadeType::MOLOTOV;// "weapon_molotov", "weapon_incgrenade"
+	switch (*wpn->GetItemDefinitionIndex())
+	{
+		case ItemDefinitionIndex::WEAPON_HEGRENADE:
+			return GrenadeType::HEGRENADE;
+		case ItemDefinitionIndex::WEAPON_SMOKEGRENADE:
+			return GrenadeType::SMOKE;
+		case ItemDefinitionIndex::WEAPON_FLASHBANG:
+		case ItemDefinitionIndex::WEAPON_DECOY:
+			return GrenadeType::FLASH;
+		case ItemDefinitionIndex::WEAPON_MOLOTOV:
+		case ItemDefinitionIndex::WEAPON_INCGRENADE:
+			return GrenadeType::MOLOTOV;
+		default:
+			return (GrenadeType)-1;
+	}
 }
 
 static ImColor GetColor(GrenadeType type)
@@ -48,13 +53,12 @@ static ImColor GetColor(GrenadeType type)
 static void DrawGrenadeInfo(GrenadeInfo* info)
 {
 	Vector pos2d;
-	if (debugOverlay->ScreenPosition(Vector(info->pos.x, info->pos.y, info->pos.z), pos2d))
+	if( debugOverlay->ScreenPosition( Vector(info->pos.x, info->pos.y, info->pos.z), pos2d ) )
 		return;
 
-	Color clr = Color::FromImColor(GetColor(info->gType));
 	float radius = 20;
-	Draw::Circle(Vector2D(pos2d.x, pos2d.y), 15, radius, clr);
-	Draw::Text(pos2d.x + radius, pos2d.y, info->name.c_str(), esp_font, clr);
+	Draw::AddCircle( pos2d.x, pos2d.y, radius, GetColor(info->gType), 15 );
+	Draw::AddText( pos2d.x + radius, pos2d.y, info->name.c_str(), GetColor(info->gType) );
 }
 static void DrawAimHelp(GrenadeInfo* info)
 {
@@ -64,19 +68,14 @@ static void DrawAimHelp(GrenadeInfo* info)
 	infoVec += info->pos;
 
 	Vector posVec;
-	if (debugOverlay->ScreenPosition(infoVec, posVec))
+	if( debugOverlay->ScreenPosition( infoVec, posVec ) )
 		return;
 
-	int w, h;
-	engine->GetScreenSize(w, h);
-
-	Vector2D pos2d(posVec.x, posVec.y);
-
 	// Draw Point to Throw to
-	Draw::FilledCircle(pos2d, 20, 5, Color::FromImColor(Settings::GrenadeHelper::aimDot.Color()));
+	Draw::AddCircleFilled(posVec.x, posVec.y, 5, Settings::GrenadeHelper::aimDot.Color(), 20 );
 
 	// Draw Help line
-	Draw::Line(Vector2D(w / 2, h / 2), pos2d, Color::FromImColor(Settings::GrenadeHelper::aimLine.Color()));
+	Draw::AddLine(Paint::engineWidth / 2, Paint::engineHeight / 2, posVec.x, posVec.y, Settings::GrenadeHelper::aimLine.Color());
 }
 static void AimAssist(CUserCmd* cmd)
 {
@@ -165,19 +164,20 @@ static void CheckForUpdate()
 	if (!engine->IsInGame())
 		return;
 
-	pstring s = pstring(GetLocalClient(-1)->m_szLevelNameShort);
-	unsigned long p = s.find_last_of("/");
+	std::string levelName = std::string(GetLocalClient(-1)->m_szLevelNameShort);
+	unsigned long p = levelName.find_last_of("/");
 	if (p != std::string::npos)
-		s.erase(0, p + 1);
+		levelName.erase(0, p + 1);
 
-	if (!Settings::GrenadeHelper::actMapName.compare(s))
+	if (!Settings::GrenadeHelper::actMapName.compare(levelName))
 		return;
 
-	Settings::GrenadeHelper::actMapName = s;
-	pstring path = GetGhConfigDirectory().append(s).append(XORSTR("/config.json"));
+	Settings::GrenadeHelper::actMapName = levelName;
+	std::ostringstream path;
+	path << GetGhConfigDirectory()<< levelName << XORSTR("/config.json");
 
-	if (DoesFileExist(path.c_str()))
-		Settings::LoadGrenadeInfo(path);
+	if (DoesFileExist(path.str().c_str()))
+		Settings::LoadGrenadeInfo(path.str());
 	else
 		Settings::GrenadeHelper::grenadeInfos = {};
 }

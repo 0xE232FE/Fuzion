@@ -1,14 +1,9 @@
 #pragma once
 
-#include "../settings.h"
-#include "../interfaces.h"
-#include "../Utils/entity.h"
-#include "../Utils/math.h"
-
-extern "C"
-{
-	#include <xdo.h>
-}
+#include <vector>
+#include <cstdint>
+#include "../SDK/IInputSystem.h"
+#include "../SDK/IGameEvent.h"
 
 namespace Aimbot
 {
@@ -16,12 +11,8 @@ namespace Aimbot
 	extern std::vector<int64_t> friends;
     extern int targetAimbot;
 
-	void XDOCleanup();
-
 	//Hooks
 	void CreateMove(CUserCmd* cmd);
 	void FireGameEvent(IGameEvent* event);
 	void UpdateValues();
-
-
 }

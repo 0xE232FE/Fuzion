@@ -1,9 +1,9 @@
 #include "autoknife.h"
 
-bool Settings::AutoKnife::enabled = false;
-bool Settings::AutoKnife::Filters::enemies = true;
-bool Settings::AutoKnife::Filters::allies = false;
-bool Settings::AutoKnife::onKey = true;
+#include "../settings.h"
+#include "../Utils/math.h"
+#include "../Utils/entity.h"
+#include "../interfaces.h"
 
 bool AutoKnife::IsPlayerBehind(C_BasePlayer* localplayer, C_BasePlayer* player)
 {
@@ -120,10 +120,10 @@ void AutoKnife::CreateMove(CUserCmd *cmd)
 		|| player->GetImmune())
 		return;
 
-	if (player->GetTeam() != localplayer->GetTeam() && !Settings::AutoKnife::Filters::enemies)
+	if (!Entity::IsTeamMate(player, localplayer) && !Settings::AutoKnife::Filters::enemies)
 		return;
 
-	if (player->GetTeam() == localplayer->GetTeam() && !Settings::AutoKnife::Filters::allies)
+	if (Entity::IsTeamMate(player, localplayer) && !Settings::AutoKnife::Filters::allies)
 		return;
 
 	float playerDistance = localplayer->GetVecOrigin().DistTo(player->GetVecOrigin());

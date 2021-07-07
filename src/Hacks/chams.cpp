@@ -1,17 +1,9 @@
 #include "chams.h"
 
-bool Settings::ESP::Chams::enabled = false;
-bool Settings::ESP::Chams::Arms::enabled = false;
-bool Settings::ESP::Chams::Weapon::enabled = false;
-ArmsType Settings::ESP::Chams::Arms::type = ArmsType::DEFAULT;
-HealthColorVar Settings::ESP::Chams::allyColor = ImColor(0, 0, 255, 255);
-HealthColorVar Settings::ESP::Chams::allyVisibleColor = ImColor(0, 255, 0, 255);
-HealthColorVar Settings::ESP::Chams::enemyColor = ImColor(255, 0, 0, 255);
-HealthColorVar Settings::ESP::Chams::enemyVisibleColor = ImColor(255, 255, 0, 255);
-HealthColorVar Settings::ESP::Chams::localplayerColor = ImColor(0, 255, 255, 255);
-ColorVar Settings::ESP::Chams::Arms::color = ImColor(255, 255, 255, 255);
-ColorVar Settings::ESP::Chams::Weapon::color = ImColor(255, 255, 255, 255);
-ChamsType Settings::ESP::Chams::type = ChamsType::CHAMS;
+#include "../Utils/xorstring.h"
+#include "../Utils/entity.h"
+#include "../settings.h"
+#include "../interfaces.h"
 
 IMaterial* materialChams;
 IMaterial* materialChamsIgnorez;
@@ -19,6 +11,8 @@ IMaterial* materialChamsFlat;
 IMaterial* materialChamsFlatIgnorez;
 IMaterial* materialChamsArms;
 IMaterial* materialChamsWeapons;
+
+typedef void (*DrawModelExecuteFn) (void*, void*, void*, const ModelRenderInfo_t&, matrix3x4_t*);
 
 static void DrawPlayer(void* thisptr, void* context, void *state, const ModelRenderInfo_t &pInfo, matrix3x4_t* pCustomBoneToWorld)
 {
@@ -38,14 +32,14 @@ static void DrawPlayer(void* thisptr, void* context, void *state, const ModelRen
 	if (entity == localplayer && !Settings::ESP::Filters::localplayer)
 		return;
 
-	if (entity->GetTeam() != localplayer->GetTeam() && !Settings::ESP::Filters::enemies)
+	if (!Entity::IsTeamMate(entity, localplayer) && !Settings::ESP::Filters::enemies)
 		return;
 
-	if (entity != localplayer && entity->GetTeam() == localplayer->GetTeam() && !Settings::ESP::Filters::allies)
+	if (entity != localplayer && Entity::IsTeamMate(entity,localplayer) && !Settings::ESP::Filters::allies)
 		return;
 
-	IMaterial* visible_material;
-	IMaterial* hidden_material;
+	IMaterial* visible_material = nullptr;
+	IMaterial* hidden_material = nullptr;
 
 	switch (Settings::ESP::Chams::type)
 	{
@@ -60,44 +54,43 @@ static void DrawPlayer(void* thisptr, void* context, void *state, const ModelRen
 			hidden_material = materialChamsFlatIgnorez;
 			break;
 	}
-
-	visible_material->AlphaModulate(1.0f);
-	hidden_material->AlphaModulate(1.0f);
-
+	
+	ImColor visColor;
+	ImColor color;
+	
 	if (entity == localplayer)
 	{
-		Color visColor = Color::FromImColor(Settings::ESP::Chams::localplayerColor.Color(entity));
-		Color color = visColor;
-		color *= 0.45f;
-
-		visible_material->ColorModulate(visColor);
-		hidden_material->ColorModulate(color);
+		visColor = Settings::ESP::Chams::localplayerColor.Color(entity);
+		color = visColor;
+		
+		color.Value.x *= 0.45f; // does same thing as color *= 0.45
+		color.Value.y *= 0.45f;
+		color.Value.z *= 0.45f;
 	}
-	else if (entity->GetTeam() == localplayer->GetTeam())
+	else if (Entity::IsTeamMate(entity, localplayer))
 	{
-		Color visColor = Color::FromImColor(Settings::ESP::Chams::allyVisibleColor.Color(entity));
-		Color color = Color::FromImColor(Settings::ESP::Chams::allyColor.Color(entity));
-
-		visible_material->ColorModulate(visColor);
-		hidden_material->ColorModulate(color);
+		visColor = Settings::ESP::Chams::allyVisibleColor.Color(entity);
+		color = Settings::ESP::Chams::allyColor.Color(entity);
 	}
-	else if (entity->GetTeam() != localplayer->GetTeam())
+	else if (!Entity::IsTeamMate(entity, localplayer))
 	{
-		Color visColor = Color::FromImColor(Settings::ESP::Chams::enemyVisibleColor.Color(entity));
-		Color color = Color::FromImColor(Settings::ESP::Chams::enemyColor.Color(entity));
-
-		visible_material->ColorModulate(visColor);
-		hidden_material->ColorModulate(color);
+		visColor = Settings::ESP::Chams::enemyVisibleColor.Color(entity);
+		color = Settings::ESP::Chams::enemyColor.Color(entity);
 	}
 	else
 	{
 		return;
 	}
-
-	if (entity->GetImmune())
-	{
-		visible_material->AlphaModulate(0.5f);
-		hidden_material->AlphaModulate(0.5f);
+	
+	visible_material->ColorModulate(visColor);
+	hidden_material->ColorModulate(color);
+	
+	if (entity->GetImmune()) {
+		visible_material->AlphaModulate(visColor.Value.w / 2);
+		hidden_material->AlphaModulate(color.Value.w / 2);
+	} else {
+		visible_material->AlphaModulate(visColor.Value.w);
+		hidden_material->AlphaModulate(color.Value.w);
 	}
 
 	if (!Settings::ESP::Filters::legit && (Settings::ESP::Chams::type == ChamsType::CHAMS_XQZ || Settings::ESP::Chams::type == ChamsType::CHAMS_FLAT_XQZ))
@@ -107,12 +100,17 @@ static void DrawPlayer(void* thisptr, void* context, void *state, const ModelRen
 	}
 
 	modelRender->ForcedMaterialOverride(visible_material);
-	modelRenderVMT->GetOriginalMethod<DrawModelExecuteFn>(21)(thisptr, context, state, pInfo, pCustomBoneToWorld);
+	// No need to call DME again, it already gets called in DrawModelExecute.cpp
 }
 
 static void DrawWeapon(const ModelRenderInfo_t& pInfo)
 {
 	if (!Settings::ESP::Chams::Weapon::enabled)
+		return;
+
+    	//turn weapon chams off while scoped so you can actually see with COD guns while scoped -Crazily.
+    	C_BasePlayer *localPlayer = (C_BasePlayer *) entityList->GetClientEntity(engine->GetLocalPlayer());
+    	if (localPlayer->IsScoped())
 		return;
 
 	std::string modelName = modelInfo->GetModelName(pInfo.pModel);
@@ -121,9 +119,11 @@ static void DrawWeapon(const ModelRenderInfo_t& pInfo)
 	if (!Settings::ESP::Chams::Weapon::enabled)
 		mat = material->FindMaterial(modelName.c_str(), TEXTURE_GROUP_MODEL);
 
-	mat->AlphaModulate(1.0f);
 	mat->ColorModulate(Settings::ESP::Chams::Weapon::color.Color());
+	mat->AlphaModulate(Settings::ESP::Chams::Weapon::color.Color().Value.w);
 
+	mat->SetMaterialVarFlag(MATERIAL_VAR_WIREFRAME, Settings::ESP::Chams::Weapon::type == WeaponType::WIREFRAME);
+	mat->SetMaterialVarFlag(MATERIAL_VAR_NO_DRAW, Settings::ESP::Chams::Weapon::type == WeaponType::NONE);
 	modelRender->ForcedMaterialOverride(mat);
 }
 
@@ -138,15 +138,8 @@ static void DrawArms(const ModelRenderInfo_t& pInfo)
 	if (!Settings::ESP::Chams::Arms::enabled)
 		mat = material->FindMaterial(modelName.c_str(), TEXTURE_GROUP_MODEL);
 
-	switch (Settings::ESP::Chams::Arms::type)
-	{
-		default:
-			break;
-		case ArmsType::DEFAULT:
-			mat->AlphaModulate(1.0f);
-			mat->ColorModulate(Settings::ESP::Chams::Arms::color.Color());
-			break;
-	}
+	mat->ColorModulate(Settings::ESP::Chams::Arms::color.Color());
+	mat->AlphaModulate(Settings::ESP::Chams::Arms::color.Color().Value.w);
 
 	mat->SetMaterialVarFlag(MATERIAL_VAR_WIREFRAME, Settings::ESP::Chams::Arms::type == ArmsType::WIREFRAME);
 	mat->SetMaterialVarFlag(MATERIAL_VAR_NO_DRAW, Settings::ESP::Chams::Arms::type == ArmsType::NONE);
@@ -176,12 +169,18 @@ void Chams::DrawModelExecute(void* thisptr, void* context, void *state, const Mo
 		materialsCreated = true;
 	}
 
-	std::string modelName = modelInfo->GetModelName(pInfo.pModel);
+	const char *modelName = modelInfo->GetModelName(pInfo.pModel);
 
-	if (modelName.find(XORSTR("models/player")) != std::string::npos)
+	if (strstr(modelName, XORSTR("models/player")))
+	{
 		DrawPlayer(thisptr, context, state, pInfo, pCustomBoneToWorld);
-	else if (modelName.find(XORSTR("arms")) != std::string::npos)
+	}
+	else if (strstr(modelName, XORSTR("arms")))
+	{
 		DrawArms(pInfo);
-	else if (modelName.find(XORSTR("weapon")) != std::string::npos)
+	}
+	else if (strstr(modelName, XORSTR("weapon")))
+	{
 		DrawWeapon(pInfo);
+	}
 }

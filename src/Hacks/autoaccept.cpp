@@ -1,23 +1,15 @@
 #include "autoaccept.h"
 
-bool Settings::AutoAccept::enabled = false;
+#include "../Utils/xorstring.h"
+#include "../settings.h"
 
-struct CServerConfirmedReservationCheckCallback
-{
-	char pad[0x2200];
-};
-
-void AutoAccept::PlaySound(const char* filename)
+void AutoAccept::EmitSound(const char* pSoundEntry)
 {
 	if (!Settings::AutoAccept::enabled)
 		return;
 
-	if (engine->IsInGame())
-		return;
-
-	if (strcmp(filename, XORSTR("UI/competitive_accept_beep.wav")) != 0) // new wav file on autoaccept, thanks @flawww
-		return;
-
-	CServerConfirmedReservationCheckCallback empty_callback;
-	IsReadyCallback(&empty_callback);
+	if (strcmp(pSoundEntry, XORSTR("UIPanorama.popup_accept_match_beep")) == 0 && SetLocalPlayerReady)
+	{
+		SetLocalPlayerReady("");
+	}
 }

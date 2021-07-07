@@ -1,7 +1,8 @@
 #include "autodefuse.h"
 
-bool Settings::AutoDefuse::enabled = false;
-bool Settings::AutoDefuse::silent = false;
+#include "../settings.h"
+#include "../interfaces.h"
+#include "../Utils/math.h"
 
 void AutoDefuse::CreateMove(CUserCmd *cmd)
 {

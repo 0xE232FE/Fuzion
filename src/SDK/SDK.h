@@ -3,8 +3,6 @@
 #include <cstdint>
 #include <dlfcn.h>
 #include "../offsets.h"
-#include "../Utils/pstring.h"
-
 #include "definitions.h"
 #include "common.h"
 #include "color.h"
@@ -30,6 +28,7 @@
 #include "IClientEntityList.h"
 #include "IClientMode.h"
 #include "ICvar.h"
+#include "IFileSystem.h"
 #include "IGameEvent.h"
 #include "ILocalize.h"
 #include "CGameServer.h"
@@ -46,3 +45,7 @@
 #include "KeyValues.h"
 #include "ICommandLine.h"
 #include "CBaseClientState.h"
+#include "panorama/PanoramaUIEngine.h"
+#include "Materialsystem_config.h"
+#include "IGameTypes.h"
+#include "CItemSystem.h"

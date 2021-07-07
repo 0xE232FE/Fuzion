@@ -1,5 +1,7 @@
 #pragma once
 
+#include "CUtlMemory.h"
+
 template <class T, class A = CUtlMemory<T>> class CUtlVector
 {
 	typedef A CAllocator;
@@ -14,7 +16,6 @@ template <class T, class A = CUtlMemory<T>> class CUtlVector
 		{
 			return m_Size;
 		}
-	protected:
 		CAllocator m_Memory;
 		int m_Size;
 		T* m_pElements;

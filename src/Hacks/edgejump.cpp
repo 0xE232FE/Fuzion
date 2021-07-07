@@ -1,7 +1,7 @@
 #include "edgejump.h"
 
-bool Settings::EdgeJump::enabled = false;
-ButtonCode_t Settings::EdgeJump::key = ButtonCode_t::KEY_C;
+#include "../settings.h"
+#include "../interfaces.h"
 
 int flags_backup = 0;
 

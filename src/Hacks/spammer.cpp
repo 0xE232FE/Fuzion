@@ -1,28 +1,13 @@
 #include "spammer.h"
 
-SpammerType Settings::Spammer::type = SpammerType::SPAMMER_NONE;
-bool Settings::Spammer::say_team = false;
-bool Settings::Spammer::KillSpammer::enabled = false;
-bool Settings::Spammer::KillSpammer::sayTeam = false;
-std::vector<std::string> Settings::Spammer::KillSpammer::messages = {
-		"",
-		"",
-};
-bool Settings::Spammer::RadioSpammer::enabled = false;
-std::vector<std::string> Settings::Spammer::NormalSpammer::messages = {
-		"",
-		"",
-		"",
-		""
-};
-int Settings::Spammer::PositionSpammer::team = 1;
-bool Settings::Spammer::PositionSpammer::showName = true;
-bool Settings::Spammer::PositionSpammer::showWeapon = true;
-bool Settings::Spammer::PositionSpammer::showRank = true;
-bool Settings::Spammer::PositionSpammer::showWins = true;
-bool Settings::Spammer::PositionSpammer::showHealth = true;
-bool Settings::Spammer::PositionSpammer::showMoney = true;
-bool Settings::Spammer::PositionSpammer::showLastplace = true;
+#include <sstream>
+
+#include "../Utils/xorstring.h"
+#include "../Utils/entity.h"
+#include "esp.h"
+#include "../ImGUI/imgui_internal.h"
+#include "../settings.h"
+#include "../interfaces.h"
 
 std::vector<int> killedPlayerQueue;
 
@@ -54,13 +39,13 @@ void Spammer::BeginFrame(float frameTime)
 		dead_player_name.erase(std::remove(dead_player_name.begin(), dead_player_name.end(), '\n'), dead_player_name.end());
 
 		// Construct a command with our message
-		pstring str;
+		std::ostringstream str;
 		str << (Settings::Spammer::KillSpammer::sayTeam ? XORSTR("say_team") : XORSTR("say"));
 		std::string message = Settings::Spammer::KillSpammer::messages[std::rand() % Settings::Spammer::KillSpammer::messages.size()];
 		str << " \"" << Util::ReplaceString(message, XORSTR("$nick"), dead_player_name) << "\"";
 
 		// Execute our constructed command
-		engine->ExecuteClientCmd(str.c_str());
+		engine->ExecuteClientCmd(str.str().c_str());
 
 		// Remove the first element from the vector
 		killedPlayerQueue.erase(killedPlayerQueue.begin(), killedPlayerQueue.begin() + 1);
@@ -104,12 +89,12 @@ void Spammer::BeginFrame(float frameTime)
 		std::string message = Settings::Spammer::NormalSpammer::messages[std::rand() % Settings::Spammer::NormalSpammer::messages.size()];
 
 		// Construct a command with our message
-		pstring str;
+		std::ostringstream str;
 		str << (Settings::Spammer::say_team ? XORSTR("say_team") : XORSTR("say")) << " ";
 		str << message;
 
 		// Execute our constructed command
-		engine->ExecuteClientCmd(str.c_str());
+		engine->ExecuteClientCmd(str.str().c_str());
 	}
 	else if (Settings::Spammer::type == SpammerType::SPAMMER_POSITIONS)
 	{
@@ -129,10 +114,10 @@ void Spammer::BeginFrame(float frameTime)
 				|| !player->GetAlive())
 				continue;
 
-			if (Settings::Spammer::PositionSpammer::team == 0 && player->GetTeam() != localplayer->GetTeam())
+			if (Settings::Spammer::PositionSpammer::team == 0 && !Entity::IsTeamMate(player, localplayer))
 				continue;
 
-			if (Settings::Spammer::PositionSpammer::team == 1 && player->GetTeam() == localplayer->GetTeam())
+			if (Settings::Spammer::PositionSpammer::team == 1 && Entity::IsTeamMate(player, localplayer))
 				continue;
 
 			IEngineClient::player_info_t entityInformation;
@@ -150,7 +135,7 @@ void Spammer::BeginFrame(float frameTime)
 			playerName.erase(std::remove(playerName.begin(), playerName.end(), '\n'), playerName.end());
 
 			// Construct a command with our message
-			pstring str;
+			std::ostringstream str;
 			str << (Settings::Spammer::say_team ? XORSTR("say_team") : XORSTR("say")) << " \"";
 
 			if (Settings::Spammer::PositionSpammer::showName)
@@ -177,7 +162,7 @@ void Spammer::BeginFrame(float frameTime)
 			str << "\"";
 
 			// Execute our constructed command
-			engine->ExecuteClientCmd(str.c_str());
+			engine->ExecuteClientCmd(str.str().c_str());
 
 			break;
 		}

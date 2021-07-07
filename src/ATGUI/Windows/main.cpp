@@ -1,5 +1,15 @@
 #include "main.h"
 
+#include "../../settings.h"
+#include "../../ImGUI/imgui_internal.h"
+#include "../../Utils/xorstring.h"
+
+#include "../Tabs/aimbottab.h"
+#include "../Tabs/hvhtab.h"
+#include "../Tabs/misctab.h"
+#include "../Tabs/triggerbottab.h"
+#include "../Tabs/visualstab.h"
+
 bool Main::showWindow = true;
 
 void Main::RenderWindow()
@@ -24,7 +34,7 @@ void Main::RenderWindow()
 
 	static int page = 0;
 
-	if (ImGui::Begin(XORSTR("Fuzion"), &Main::showWindow, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_ShowBorders))
+	if (ImGui::Begin(XORSTR("Fuzion"), &Main::showWindow, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar ))
 	{
 		Settings::UI::Windows::Main::open = true;
 		ImVec2 temp = ImGui::GetWindowSize();

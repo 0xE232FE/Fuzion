@@ -1,9 +1,6 @@
 #pragma once
 
-#include <cstdint>
-#include <cstddef>
-#include <cstring>
-#include "settings.h"
+#include "SDK/definitions.h"
 
 extern HFont esp_font;
 

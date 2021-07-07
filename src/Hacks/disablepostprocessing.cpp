@@ -1,6 +1,7 @@
 #include "disablepostprocessing.h"
 
-bool Settings::DisablePostProcessing::enabled = false;
+#include "../settings.h"
+#include "../interfaces.h"
 
 void DisablePostProcessing::BeginFrame()
 {

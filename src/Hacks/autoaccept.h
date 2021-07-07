@@ -1,12 +1,11 @@
 #pragma once
 
-#include "../interfaces.h"
-#include "../settings.h"
+#include "../SDK/definitions.h"
 
 namespace AutoAccept
 {
 	//Hooks
-	void PlaySound(const char* filename);
+	void EmitSound(const char* pSoundEntry);
 }
 
-extern IsReadyCallbackFn IsReadyCallback;
+extern SetLocalPlayerReadyFn SetLocalPlayerReady;

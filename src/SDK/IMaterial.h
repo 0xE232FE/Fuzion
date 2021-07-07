@@ -1,5 +1,9 @@
 #pragma once
 
+#include "color.h"
+#include <cstdint>
+#include "common.h"
+
 class IMaterialVar;
 typedef uint64_t VertexFormat_t;
 
@@ -87,7 +91,7 @@ enum ImageFormat {
 	IMAGE_FORMAT_RG3232F,
 	IMAGE_FORMAT_RGBX8888,
 
-	IMAGE_FORMAT_NULL,            // Dummy format which takes no video memory
+	IMAGE_FORMAT_nullptr,            // Dummy format which takes no video memory
 
 	// Compressed normal map formats
 	IMAGE_FORMAT_ATI2N,            // One-surface ATI2N / DXN format

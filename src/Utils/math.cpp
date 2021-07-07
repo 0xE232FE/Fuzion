@@ -1,8 +1,12 @@
 #include "math.h"
 
+bool Math::Cmpf( float f1, float f2, float epsilon ) {
+	return ( fabs( f1 - f2 ) < epsilon );
+}
+
 void inline Math::SinCos(float radians, float *sine, float *cosine)
 {
-	register double __cosr, __sinr;
+	double __cosr, __sinr;
 	__asm ("fsincos" : "=t" (__cosr), "=u" (__sinr) : "0" (radians));
 
 	*sine = __sinr;
@@ -17,9 +21,6 @@ float Math::float_rand( float min, float max ) // thanks foo - https://stackover
 
 void Math::AngleVectors(const QAngle &angles, Vector& forward)
 {
-	Assert(s_bMathlibInitialized);
-	Assert(forward);
-
 	float sp, sy, cp, cy;
 
 	Math::SinCos(DEG2RAD(angles[YAW]), &sy, &cy);
@@ -28,6 +29,32 @@ void Math::AngleVectors(const QAngle &angles, Vector& forward)
 	forward.x = cp * cy;
 	forward.y = cp * sy;
 	forward.z = -sp;
+}
+
+void Math::AngleVectors( const Vector& angles, Vector* forward, Vector* right, Vector* up ) {
+	float sr, sp, sy, cr, cp, cy;
+
+	SinCos( DEG2RAD( angles[1] ), &sy, &cy );
+	SinCos( DEG2RAD( angles[0] ), &sp, &cp );
+	SinCos( DEG2RAD( angles[2] ), &sr, &cr );
+
+	if ( forward ) {
+		forward->x = cp * cy;
+		forward->y = cp * sy;
+		forward->z = -sp;
+	}
+
+	if ( right ) {
+		right->x = ( -1 * sr * sp * cy + -1 * cr * -sy );
+		right->y = ( -1 * sr * sp * sy + -1 * cr * cy );
+		right->z = -1 * sr * cp;
+	}
+
+	if ( up ) {
+		up->x = ( cr * sp * cy + -sr * -sy );
+		up->y = ( cr * sp * sy + -sr * cy );
+		up->z = cr * cp;
+	}
 }
 
 void Math::NormalizeAngles(QAngle& angle)
@@ -45,6 +72,13 @@ void Math::NormalizeAngles(QAngle& angle)
 		angle.y += 360.f;
 }
 
+void Math::NormalizeYaw( float& yaw ) {
+	while ( yaw > 180.0f )
+		yaw -= 360.0f;
+	while ( yaw < -180.0f )
+		yaw += 360.0f;
+}
+
 void Math::ClampAngles(QAngle& angle)
 {
 	if (angle.y > 180.0f)
@@ -60,7 +94,7 @@ void Math::ClampAngles(QAngle& angle)
 	angle.z = 0;
 }
 
-void Math::CorrectMovement(QAngle vOldAngles, CUserCmd* pCmd, float fOldForward, float fOldSidemove)
+void Math::CorrectMovement(const QAngle &vOldAngles, CUserCmd* pCmd, float fOldForward, float fOldSidemove)
 {
 	// side/forward move correction
 	float deltaView;
@@ -119,18 +153,18 @@ void Math::VectorAngles(const Vector& forward, QAngle &angles)
 	angles[2] = 0.0f;
 }
 
-float Math::DotProduct(Vector &v1, const float* v2)
+float Math::DotProduct(const Vector &v1, const float* v2)
 {
 	return v1.x*v2[0] + v1.y*v2[1] + v1.z*v2[2];
 }
-void Math::VectorTransform (Vector &in1, const matrix3x4_t& in2, Vector &out)
+void Math::VectorTransform (const Vector &in1, const matrix3x4_t& in2, Vector &out)
 {
 	out.x = DotProduct(in1, in2[0]) + in2[0][3];
 	out.y = DotProduct(in1, in2[1]) + in2[1][3];
 	out.z = DotProduct(in1, in2[2]) + in2[2][3];
 }
 
-QAngle Math::CalcAngle(Vector src, Vector dst)
+QAngle Math::CalcAngle(const Vector &src, const Vector &dst)
 {
 	QAngle angles;
 	Vector delta = src - dst;

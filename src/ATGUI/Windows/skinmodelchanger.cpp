@@ -1,5 +1,13 @@
 #include "skinmodelchanger.h"
 
+#include "../../ImGUI/imgui.h"
+#include "../../ImGUI/imgui_internal.h"
+#include "../../settings.h"
+#include "../../Utils/xorstring.h"
+
+#include "../Tabs/modelstab.h"
+#include "../Tabs/skinstab.h"
+
 bool SkinModelChanger::showWindow = false;
 
 static int page = 0;
@@ -25,7 +33,7 @@ void TabButtons()
 		if (ImGui::Button(tabs[i], ImVec2(ImGui::GetWindowSize().x / IM_ARRAYSIZE(tabs) - 9, 0)))
 			page = i;
 
-		ImGui::GetStyle().Colors[ImGuiCol_Button] = Settings::UI::mainColor.Color();
+		ImGui::GetStyle().Colors[ImGuiCol_Button] = Settings::UI::accentColor.Color();
 
 		if (i < IM_ARRAYSIZE(tabs) - 1)
 			ImGui::SameLine();
@@ -52,7 +60,7 @@ void SkinModelChanger::RenderWindow()
 		return;
 	}
 
-	if (ImGui::Begin(XORSTR("Skin & Model Changer"), &SkinModelChanger::showWindow, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_ShowBorders))
+	if (ImGui::Begin(XORSTR("Skin & Model Changer"), &SkinModelChanger::showWindow, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar ))
 	{
 		Settings::UI::Windows::Skinmodel::open = true;
 		ImVec2 temp = ImGui::GetWindowSize();

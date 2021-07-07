@@ -1,5 +1,6 @@
 #include "patternfinder.h"
 #include "../hooker.h"
+#include "../Utils/util.h"
 
 // original code by dom1n1k and Patrick at GameDeception
 inline bool Compare(const unsigned char* pData, const unsigned char* bMask, const char* szMask)
@@ -25,7 +26,14 @@ uintptr_t PatternFinder::FindPatternInModule(const char* moduleName, unsigned ch
 	uintptr_t baseAddress;
 	size_t memSize;
 
-	if (!Hooker::GetLibraryInformation(moduleName, &baseAddress, &memSize))
+	if (!Hooker::GetLibraryInformation(moduleName, &baseAddress, &memSize)){
+		Util::Log("(FindPatternInModule): ERROR: Could Not Get info for Module %s\n", moduleName);
 		return 0;
-	return FindPattern(baseAddress, baseAddress + memSize, bMask, szMask);
+	}
+
+	uintptr_t ret = FindPattern(baseAddress, memSize, bMask, szMask);
+	if( !ret ){
+		Util::Log("(FindPatternInModule): ERROR: Could not find pattern (%s)(%s)\n", moduleName, szMask );
+	}
+	return ret;
 }

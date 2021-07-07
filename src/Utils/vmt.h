@@ -1,55 +1,93 @@
 #pragma once
 
+#include "MemoryProtection.h"
+
 #include <cstdint>
-#include <cstddef>
+#include <vector>
 
-class VMT
+class VMT;
+extern std::vector<VMT*> createdVMTs;
+
+inline uint32_t CountVMs( void* interface )
 {
-private:
-	uintptr_t* vmt;
-public:
-	// New virtual method table
-	uintptr_t** interface = nullptr;
-
-	uintptr_t* original_vmt = nullptr;
+	uintptr_t** vmt = reinterpret_cast<uintptr_t**>(interface);
 
 	uint32_t methodCount = 0;
 
-	VMT(void* interface)
-	{
-		this->interface = reinterpret_cast<uintptr_t**>(interface);
+	while ( vmt && (*vmt)[methodCount] && ( MemoryProtection::GetProtectionFlags( (*vmt)[methodCount] ) & PF_X ) )
+		methodCount++;
 
-		size_t method_count = 0;
+	return methodCount;
+}
 
-		while (reinterpret_cast<uintptr_t*>(*this->interface)[method_count])
-			method_count++;
+class VMT
+{
+public:
+    uintptr_t* vmt;
+    uintptr_t** interface = nullptr;
+    uintptr_t* original_vmt = nullptr;
+    size_t method_count = 0;
+    bool hasRTTI = false;
+    int32_t rttiPrefix = 0;
 
-		original_vmt = *this->interface;
+    ~VMT( ){
+        ReleaseVMT();
+        delete[] vmt;
+    }
+    // rttiPrefix 2??? Wtf? Yeah read this: https://web.archive.org/web/20170701021444/https://spockwangs.github.io/2011/01/31/cpp-object-model.html
+    explicit VMT(void* interface, bool copyRTTI = true, int32_t rttiPrefixAmount = 2)
+    {
+        this->interface = reinterpret_cast<uintptr_t**>(interface);
 
-		vmt = new uintptr_t[sizeof(uintptr_t) * method_count];
+        method_count = CountVMs(interface) + 2 + rttiPrefixAmount;
 
-		memcpy(vmt, original_vmt, sizeof(uintptr_t) * method_count);
-	}
+        original_vmt = *this->interface;
 
-	// Hook virtual method
-	void HookVM(void* method, size_t methodIndex)
-	{
-		vmt[methodIndex] = reinterpret_cast<uintptr_t>(method);
-	}
+        // Copy the Original Vtable.
+        if( copyRTTI ){
+            vmt = new uintptr_t[method_count + 1];
+            memcpy(vmt, &original_vmt[-rttiPrefixAmount], (sizeof(uintptr_t) * method_count) + sizeof(uintptr_t));
+            hasRTTI = true;
+            rttiPrefix = rttiPrefixAmount;
+        } else {
+            vmt = new uintptr_t[method_count];
+            memcpy(vmt, original_vmt, sizeof(uintptr_t) * method_count);
+        }
 
-	template<typename Fn>
-	Fn GetOriginalMethod(size_t methodIndex)
-	{
-		return reinterpret_cast<Fn>(original_vmt[methodIndex]);
-	}
+        // Make sure to "NULL terminate" our new array of pointers.
+        memset(&vmt[method_count], 0, sizeof(uintptr_t));
 
-	void ApplyVMT()
-	{
-		*this->interface = vmt;
-	}
+        createdVMTs.push_back(this);
+    }
 
-	void ReleaseVMT()
-	{
-		*this->interface = original_vmt;
-	}
+    // Hook virtual method
+    template <typename func>
+    void HookVM(func method, size_t methodIndex)
+    {
+        vmt[hasRTTI ? methodIndex + rttiPrefix : methodIndex] = reinterpret_cast<uintptr_t>(method);
+    }
+
+    template<typename Fn>
+    Fn GetOriginalMethod(size_t methodIndex)
+    {
+        return reinterpret_cast<Fn>(original_vmt[methodIndex]);
+    }
+
+    void ApplyVMT()
+    {
+        if( hasRTTI ) {
+            *this->interface = &vmt[rttiPrefix];
+        } else {
+            *this->interface = vmt;
+        }
+    }
+
+    void ReleaseVMT()
+    {
+        if( !this->interface )
+            return;
+        if( *this->interface && original_vmt )
+            *this->interface = original_vmt;
+    }
 };
+

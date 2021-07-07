@@ -1,11 +1,11 @@
 #pragma once
 
-#include "../interfaces.h"
-#include "../settings.h"
+#include "../SDK/CViewRender.h"
+#include "../Hooks/hooks.h"
 
 namespace ThirdPerson
 {
 	//Hooks
-	void BeginFrame();
+	void OverrideView(CViewSetup* pSetup);
 	void FrameStageNotify(ClientFrameStage_t stage);
 }

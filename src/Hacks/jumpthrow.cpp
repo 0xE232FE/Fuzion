@@ -1,8 +1,9 @@
 #include "jumpthrow.h"
 
+#include "../settings.h"
+#include "../interfaces.h"
+
 bool inAttackState = false;
-bool Settings::JumpThrow::enabled = false;
-ButtonCode_t Settings::JumpThrow::key = ButtonCode_t::KEY_T;
 
 void JumpThrow::CreateMove(CUserCmd* cmd)
 {
@@ -17,8 +18,10 @@ void JumpThrow::CreateMove(CUserCmd* cmd)
 	if (!activeWeapon)
 		return;
 
-	if (activeWeapon->GetCSWpnData()->GetWeaponType() != CSWeaponType::WEAPONTYPE_GRENADE)
+	if (activeWeapon->GetCSWpnData()->GetWeaponType() != CSWeaponType::WEAPONTYPE_GRENADE){
+		inAttackState = false;
 		return;
+	}
 
 	if (localplayer->GetMoveType() == MOVETYPE_LADDER || localplayer->GetMoveType() == MOVETYPE_NOCLIP)
 		return;
@@ -29,6 +32,7 @@ void JumpThrow::CreateMove(CUserCmd* cmd)
 	if (!inputSystem->IsButtonDown(Settings::JumpThrow::key) && inAttackState)
 	{
 		cmd->buttons |= IN_JUMP;
+		cmd->buttons &= ~IN_ATTACK;
 		inAttackState = false;
 		return;
 	}

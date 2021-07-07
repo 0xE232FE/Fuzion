@@ -1,28 +1,12 @@
 #include "radar.h"
 
-bool Settings::Radar::enabled = false;
-float Settings::Radar::zoom = 16.f;
-bool Settings::Radar::enemies = false;
-bool Settings::Radar::allies = false;
-bool Settings::Radar::bomb = false;
-bool Settings::Radar::defuser = false;
-bool Settings::Radar::legit = false;
-bool Settings::Radar::visibilityCheck = false;
-bool Settings::Radar::smokeCheck = false;
-bool Settings::Radar::InGame::enabled = false;
-TeamColorType Settings::Radar::teamColorType = TeamColorType::RELATIVE;
-HealthColorVar Settings::Radar::enemyColor = ImColor(255, 0, 0, 255);
-HealthColorVar Settings::Radar::enemyVisibleColor = ImColor(255, 255, 0, 255);
-HealthColorVar Settings::Radar::allyColor = ImColor(0, 0, 255, 255);
-HealthColorVar Settings::Radar::allyVisibleColor = ImColor(0, 255, 0, 255);
-HealthColorVar Settings::Radar::tColor = ImColor(255, 0, 0, 255);
-HealthColorVar Settings::Radar::tVisibleColor = ImColor(255, 255, 0, 255);
-HealthColorVar Settings::Radar::ctColor = ImColor(0, 0, 255, 255);
-HealthColorVar Settings::Radar::ctVisibleColor = ImColor(0, 255, 0, 255);
-ColorVar Settings::Radar::bombColor = ImColor(156, 39, 176, 255);
-ColorVar Settings::Radar::bombDefusingColor = ImColor(213, 0, 249, 255);
-ColorVar Settings::Radar::defuserColor = ImColor(49, 27, 146, 255);
-float Settings::Radar::iconsScale = 4.5f;
+#include <set>
+
+#include "../ATGUI/atgui.h"
+#include "../interfaces.h"
+#include "../Utils/math.h"
+#include "../Utils/entity.h"
+#include "../settings.h"
 
 std::set<int> visible_players;
 static Vector2D WorldToRadar(const Vector location, const Vector origin, const QAngle angles, int width, float scale = 16.f)
@@ -74,7 +58,7 @@ static Vector2D WorldToRadar(const Vector location, const Vector origin, const Q
 
 	return Vector2D(xnew_diff, ynew_diff);
 }
-static void SquareConstraint(ImGuiSizeConstraintCallbackData *data)
+static void SquareConstraint(ImGuiSizeCallbackData *data)
 {
 	data->DesiredSize = ImVec2(std::max(data->DesiredSize.x, data->DesiredSize.y), std::max(data->DesiredSize.x, data->DesiredSize.y));
 }
@@ -88,7 +72,7 @@ static ImColor GetRadarPlayerColor(C_BasePlayer* player, bool visible)
 
 	if (Settings::Radar::teamColorType == TeamColorType::RELATIVE)
 	{
-		if (player->GetTeam() != localplayer->GetTeam())
+		if (!Entity::IsTeamMate(player, localplayer))
 		{
 			if (visible)
 				playerColor = Settings::Radar::enemyVisibleColor.Color(player);
@@ -137,12 +121,14 @@ void Radar::RenderWindow()
 
 	ImGui::SetNextWindowSize(ImVec2(256, 256), ImGuiSetCond_FirstUseEver);
 	ImGui::SetNextWindowSizeConstraints(ImVec2(0, 0), ImVec2(FLT_MAX, FLT_MAX), SquareConstraint);
+	ImGui::SetNextWindowPos(Settings::Radar::pos, ImGuiSetCond_FirstUseEver);
 
-	if (ImGui::Begin("Radar", &Settings::Radar::enabled, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_ShowBorders | ImGuiWindowFlags_NoTitleBar))
+	if (ImGui::Begin("Radar", &Settings::Radar::enabled, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoTitleBar))
 	{
 		ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
 		ImVec2 winpos = ImGui::GetWindowPos();
+		Settings::Radar::pos = winpos;
 		ImVec2 winsize = ImGui::GetWindowSize();
 
 		draw_list->AddLine(ImVec2(winpos.x + winsize.x * 0.5f, winpos.y), ImVec2(winpos.x + winsize.x * 0.5f, winpos.y + winsize.y), ImColor(70,70,70, 255), 1.f);
@@ -188,13 +174,13 @@ void Radar::RenderWindow()
 				if (player->GetDormant() || !player->GetAlive())
 					continue;
 
-				if (player->GetTeam() == localplayer->GetTeam() && !Settings::Radar::allies)
+				if (Entity::IsTeamMate(player, localplayer) && !Settings::Radar::allies)
 					continue;
 
-				if (player->GetTeam() != localplayer->GetTeam() && !Settings::Radar::enemies)
+				if (!Entity::IsTeamMate(player, localplayer) && !Settings::Radar::enemies)
 					continue;
 
-				bool bIsVisible = player->GetTeam() == localplayer->GetTeam() || (Settings::Radar::visibilityCheck && (*player->GetSpotted() || std::find(visible_players.begin(), visible_players.end(), i) != visible_players.end()));
+				bool bIsVisible = Entity::IsTeamMate(player, localplayer) || (Settings::Radar::visibilityCheck && (*player->GetSpotted() || std::find(visible_players.begin(), visible_players.end(), i) != visible_players.end()));
 				if (!bIsVisible && Settings::Radar::legit)
 					continue;
 
@@ -308,6 +294,7 @@ static void InGameRadar(C_BasePlayer* player)
 		return;
 
 	*player->GetSpotted() = true;
+	*player->GetSpottedByMask() = -1;
 }
 
 
@@ -341,7 +328,7 @@ void Radar::BeginFrame()
 			continue;
 
 		// we shouldn't see people behind us
-		if (Entity::IsVisible(player, (int)Bone::BONE_HEAD, 55.f, Settings::Radar::smokeCheck))
+		if (Entity::IsVisible(player, CONST_BONE_HEAD, 55.f, Settings::Radar::smokeCheck))
 			visible_players.insert(i);
 		else
 			visible_players.erase(i);

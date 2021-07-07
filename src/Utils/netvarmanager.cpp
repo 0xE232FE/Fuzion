@@ -1,5 +1,10 @@
 #include "netvarmanager.h"
 
+#include <sstream>
+#include <fstream>
+
+#include "../interfaces.h"
+#include "../Utils/xorstring.h"
 std::vector<RecvTable*> NetVarManager::GetTables()
 {
 	std::vector<RecvTable*> tables;
@@ -22,7 +27,7 @@ std::vector<RecvTable*> NetVarManager::GetTables()
 RecvTable* NetVarManager::GetTable(std::vector<RecvTable*> tables, const char* tableName)
 {
 	if (tables.empty())
-		return NULL;
+		return nullptr;
 
 	for (unsigned long i = 0; i < tables.size(); i++)
 	{
@@ -35,7 +40,7 @@ RecvTable* NetVarManager::GetTable(std::vector<RecvTable*> tables, const char* t
 			return table;
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 int NetVarManager::GetOffset(std::vector<RecvTable*> tables, const char* tableName, const char* propName)
@@ -132,17 +137,14 @@ bool NetVarManager::HookProp(const char* tableName, const char* propName, RecvVa
 void NetVarManager::DumpNetvars()
 {
 	std::stringstream ss;
-	char cwd[1024];
 
-	for (ClientClass* pClass = client->GetAllClasses(); pClass != NULL; pClass = pClass->m_pNext)
+	for (ClientClass* pClass = client->GetAllClasses(); pClass != nullptr; pClass = pClass->m_pNext)
 	{
 		RecvTable* table = pClass->m_pRecvTable;
 		ss << NetVarManager::DumpTable(table, 0);
 	}
 
-	getcwd(cwd, sizeof(cwd));
-
-	std::string netvarsPath = std::string(cwd) + XORSTR("/netvars.txt");
+	std::string netvarsPath = XORSTR("/tmp/netvars.txt");
 
 	std::ofstream(netvarsPath) << ss.str();
 }

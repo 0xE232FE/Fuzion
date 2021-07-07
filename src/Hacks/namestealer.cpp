@@ -1,7 +1,10 @@
 #include "namestealer.h"
 
-bool Settings::NameStealer::enabled = false;
-int Settings::NameStealer::team = 1;
+#include "namechanger.h"
+#include "../Utils/util.h"
+#include "../Utils/xorstring.h"
+#include "../settings.h"
+#include "../interfaces.h"
 
 int NameStealer::entityId = -1;
 
@@ -41,6 +44,7 @@ void NameStealer::BeginFrame(float frameTime)
 
 		if ((*csPlayerResource) && (*csPlayerResource)->GetConnected(entityId))
 		{
+			// TODO: Replace with IsTeamMate().
 			if (Settings::NameStealer::team == 0 && (*csPlayerResource)->GetTeam(entityId) != localplayer->GetTeam())
 				break;
 

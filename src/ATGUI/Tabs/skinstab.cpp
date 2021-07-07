@@ -1,5 +1,16 @@
 #include "skinstab.h"
 
+#include "../../settings.h"
+#include "../../interfaces.h"
+#include "../../Utils/xorstring.h"
+#include "../../ImGUI/imgui_internal.h"
+#include "../../Utils/util.h"
+#include "../../Utils/util_items.h"
+#include "../../Utils/skins.h"
+#include "../../Hacks/skinchanger.h"
+
+#pragma GCC diagnostic ignored "-Wformat-security"
+
 void SplitSkins()
 {
 	static int modelCT = 1;
@@ -130,7 +141,13 @@ void SplitSkins()
 	{
 		if (!(Util::Contains(Util::ToLower(std::string(filterModelsT)), Util::ToLower(Util::Items::GetItemDisplayName(model.first))) || Util::Contains(Util::ToLower(std::string(filterModelsT)), Util::ToLower(Util::Items::GetItemEntityName(model.first)))))
 			continue;
-		if (model.first == ItemDefinitionIndex::INVALID || Util::Items::IsUtility(model.first) || model.first == ItemDefinitionIndex::GLOVE_CT_SIDE || model.first == ItemDefinitionIndex::GLOVE_T_SIDE || Util::Items::IsCTWeapon(model.first) || model.first == ItemDefinitionIndex::WEAPON_KNIFE || model.first == ItemDefinitionIndex::WEAPON_KNIFE_T)
+		if (model.first == ItemDefinitionIndex::INVALID
+			|| Util::Items::IsUtility(model.first)
+			|| model.first == ItemDefinitionIndex::GLOVE_CT_SIDE
+			|| model.first == ItemDefinitionIndex::GLOVE_T_SIDE
+			|| Util::Items::IsCTWeapon(model.first)
+			|| model.first == ItemDefinitionIndex::WEAPON_KNIFE
+			|| model.first == ItemDefinitionIndex::WEAPON_KNIFE_T)
 			continue;
 		const bool item_selected = ((int) model.first == modelT);
 		ImGui::PushID((int) model.first);
@@ -201,7 +218,7 @@ void SplitSkins()
 
 		if (!Util::Items::IsGlove((ItemDefinitionIndex) modelCT))
 		{
-			ImGui::Columns(2, NULL, false);
+			ImGui::Columns(2, nullptr, false);
 
 			ImGui::InputInt(XORSTR("StatTrak##CT"), &skinStatTrakCT);
 			ImGui::NextColumn();
@@ -229,7 +246,7 @@ void SplitSkins()
 
 	ImGui::BeginChild(XORSTR("T Settings"), ImVec2(0, 0), true);
 	{
-		ImGui::Columns(3, NULL, false);
+		ImGui::Columns(3, nullptr, false);
 
 		ImGui::InputInt(XORSTR("ID##T"), &modelSkinT);
 		ImGui::NextColumn();
@@ -244,7 +261,7 @@ void SplitSkins()
 
 		if (!Util::Items::IsGlove((ItemDefinitionIndex) modelT))
 		{
-			ImGui::Columns(2, NULL, false);
+			ImGui::Columns(2, nullptr, false);
 
 			ImGui::InputInt(XORSTR("StatTrak##T"), &skinStatTrakT);
 			ImGui::NextColumn();
@@ -378,7 +395,7 @@ void CombinedSkins()
 
 		if (!Util::Items::IsGlove((ItemDefinitionIndex)selectedModel))
 		{
-			ImGui::Columns(2, NULL, false);
+			ImGui::Columns(2, nullptr, false);
 
 			ImGui::InputInt(XORSTR("StatTrak##Combined"), &skinStatTrak);
 			ImGui::NextColumn();
@@ -406,7 +423,7 @@ void CombinedSkins()
 
 void Skins::RenderTab()
 {
-	ImGui::Columns(2, NULL, false);
+	ImGui::Columns(2, nullptr, false);
 
 	if (ImGui::Checkbox(XORSTR("Enabled"), &Settings::Skinchanger::Skins::enabled))
 	{

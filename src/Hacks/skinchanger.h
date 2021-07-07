@@ -1,12 +1,12 @@
 #pragma once
 
-#include "../interfaces.h"
-#include "../settings.h"
-#include "../modsupport.h"
+#include <memory>
+#include <unordered_map>
 
-class RecvPropHook;
+#include "../SDK/definitions.h"
+#include "../SDK/IGameEvent.h"
 
-extern GetLocalClientFn GetLocalClient;
+#include "../Utils/recvproxyhook.h"
 
 extern std::unordered_map<std::string, std::string> killIcons;
 

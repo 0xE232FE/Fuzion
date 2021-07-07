@@ -1,11 +1,24 @@
 #pragma once
 
 #include "vector.h"
+#include "common.h"
+#include "../offsets.h"
+#include "definitions.h"
+#include "CCSGOAnimState.h"
+#include "CUtlVector.h"
 
 #define MAX_SHOOT_SOUNDS 16
 #define MAX_WEAPON_STRING 80
 #define MAX_WEAPON_PREFIX 16
 #define MAX_WEAPON_AMMO_NAME 32
+
+
+class model_t;
+class ClientClass;
+
+typedef int (* GetSequenceActivityFn)( void*, int ); // C_BaseAnimating::GetSequenceActivity(int sequence).
+extern GetSequenceActivityFn GetSeqActivity;
+extern uintptr_t SetAbsOriginFnAddr;
 
 enum WeaponSound_t
 {
@@ -55,6 +68,21 @@ enum DataUpdateType_t
 	DATA_UPDATE_CREATED = 0,
 	DATA_UPDATE_DATATABLE_CHANGED,
 };
+
+class AnimationLayer
+{
+public:
+    char pad_0000[24];
+    int m_nOrder;
+    int m_nSequence; // 0x1C
+    float_t m_flPrevCycle;
+    float_t m_flWeight;
+    float_t m_flWeightDeltaRate;
+    float_t m_flPlaybackRate;
+    float_t m_flCycle;
+    void *m_pOwner; // 0x38 // player's thisptr
+    char pad_0038[8]; // 0x40
+}; //Size: 0x0048
 
 class ICollideable
 {
@@ -152,6 +180,22 @@ public:
 		return (IClientNetworkable*)((uintptr_t)this + 0x10);
 	}
 
+	const Vector& GetAbsOrigin( )
+	{
+		typedef const Vector& (* oGetAbsOrigin)(void*);
+		return getvfunc<oGetAbsOrigin>( this, 12 )( this );
+	}
+
+	void SetAbsOrigin( const Vector * const angles ) {
+		asm volatile ("mov %0, %%rdi;\n\t"
+				"mov %1, %%rsi;\n\t"
+				"call *%P2;"
+		:
+		:"r"(this), "r"(angles), "r"(SetAbsOriginFnAddr)
+		:"%rdi", "%rsi"
+		);
+	}
+
 	void SetModelIndex(int index)
 	{
 		typedef void (* oSetModelIndex)(void*, int);
@@ -178,6 +222,11 @@ public:
 		return *(TeamID*)((uintptr_t)this + offsets.DT_BaseEntity.m_iTeamNum);
 	}
 
+	int GetSurvivalTeam()
+	{
+		return *(int*)((uintptr_t)this + offsets.DT_CSPlayer.m_nSurvivalTeam);
+	}
+
 	Vector GetVecOrigin()
 	{
 		return *(Vector*)((uintptr_t)this + offsets.DT_BaseEntity.m_vecOrigin);
@@ -197,12 +246,32 @@ public:
 	{
 		return (bool*)((uintptr_t)this + offsets.DT_BaseEntity.m_bSpotted);
 	}
+
+	uint32_t *GetSpottedByMask()
+	{
+		return (uint32_t *)((uintptr_t)this + offsets.DT_BaseEntity.m_bSpottedByMask);
+	}
 };
 
 /* generic game classes */
 class C_BasePlayer : public C_BaseEntity
 {
 public:
+    int GetSequenceActivity(int sequence)
+    {
+        if( !GetSeqActivity )
+            return -1;
+        return GetSeqActivity( this, sequence );
+    }
+    CUtlVector<AnimationLayer>* GetAnimOverlay() {
+        return reinterpret_cast<CUtlVector<AnimationLayer>*>((uintptr_t)this + Offsets::playerAnimOverlayOffset);
+    }
+
+    CCSGOAnimState* GetAnimState()
+    {
+        return *reinterpret_cast<CCSGOAnimState**>((uintptr_t)this + Offsets::playerAnimStateOffset);
+    }
+
 	QAngle* GetViewPunchAngle()
 	{
 		return (QAngle*)((uintptr_t)this + offsets.DT_BasePlayer.m_viewPunchAngle);
@@ -323,9 +392,14 @@ public:
 		return *(int*)((uintptr_t)this + offsets.DT_CSPlayer.m_bHasHelmet);
 	}
 
+	bool IsFlashed() // Pasted from CSGOSimple.
+	{ // GetFlashBangTime() - globalVars->curtime > 2.0f
+		return *(float*)((uintptr_t)this->GetFlashMaxAlpha() - 0x8) > 200.0;
+	}
+
 	float GetFlashBangTime()
 	{
-		return *(float*)((uintptr_t)this + 0xABE4);
+		return *(float*)((uintptr_t)this + 0xABF4);
 	}
 
 	float GetFlashDuration()
@@ -379,10 +453,32 @@ public:
 
 		return Vector(hitbox[0][3], hitbox[1][3], hitbox[2][3]);
 	}
+	/*
+	inline Vector GetNoInterpBonePosition(int boneIndex)
+	{
+		matrix3x4_t BoneMatrix[MAXSTUDIOBONES];
+		Vector backup = this->GetAbsOrigin();
+		Vector noInterp = this->GetVecOrigin();
+		this->SetAbsOrigin( &noInterp );
+		if (!this->SetupBones(BoneMatrix, MAXSTUDIOBONES, BONE_USED_BY_HITBOX, 0)) {
+			this->SetAbsOrigin( &backup );
+			return this->GetAbsOrigin( );
+		}
+
+		matrix3x4_t hitbox = BoneMatrix[boneIndex];
+
+		this->SetAbsOrigin( &backup );
+		return Vector(hitbox[0][3], hitbox[1][3], hitbox[2][3]);
+	}*/
 
 	QAngle* GetVAngles()
 	{
 		return (QAngle*)((uintptr_t)this + offsets.DT_BasePlayer.deadflag + 0x4);
+	}
+
+	int GetHitboxSetCount()
+	{
+		return *(int*)((uintptr_t)this + offsets.DT_BaseAnimating.m_nHitboxSet);
 	}
 };
 
@@ -413,10 +509,16 @@ public:
 class C_BaseAttributableItem : public C_BaseEntity
 {
 public:
+
 	ItemDefinitionIndex* GetItemDefinitionIndex()
 	{
 		return (ItemDefinitionIndex*)((uintptr_t)this + offsets.DT_BaseAttributableItem.m_iItemDefinitionIndex);
 	}
+
+    bool* GetInitialized()
+    {
+        return (bool*)((uintptr_t)this + offsets.DT_BaseAttributableItem.m_bInitialized);
+    }
 
 	int* GetItemIDHigh()
 	{
@@ -533,62 +635,58 @@ public:
 	CHudTexture* iconSmall;
 };
 
-class CCSWeaponInfo : public FileWeaponInfo_t
-{
+class CCSWeaponInfo : public FileWeaponInfo_t {
 public:
-	CSWeaponType GetWeaponType()
-	{
-		return *(CSWeaponType*)((uintptr_t)this + 0x864);
+	char* GetConsoleName() {
+		return *( char** ) ( ( uintptr_t )this + 0x8);
 	}
 
-	bool IsFullAuto()
-	{
-		return *(bool*)((uintptr_t)this + 0x870);
+	int GetClipSize() {
+		return *( int* ) ( ( uintptr_t )this + 0x20);
 	}
 
-	float GetWeaponArmorRatio()
-	{
-		return *(float*)((uintptr_t)this + 0x87C);
+	CSWeaponType GetWeaponType() {
+		return *( CSWeaponType* ) ( ( uintptr_t )this + 0x140);
 	}
 
-	float GetMaxPlayerSpeed()
-	{
-		return *(float*)((uintptr_t)this + 0x880);
+	void SetWeaponType( CSWeaponType type ) {
+		*( CSWeaponType* ) ( ( uintptr_t )this + 0x140) = type;
 	}
 
-	float GetMaxPlayerSpeedAlt()
-	{
-		return *(float*)((uintptr_t)this + 0x884);
+	int GetDamage() {
+		return *( int* ) ( ( uintptr_t )this + 0x16C);
 	}
 
-	float GetPenetration()
-	{
-		return *(float*)((uintptr_t)this + 0x890);
+	float GetWeaponArmorRatio() {
+		return *( float* ) ( ( uintptr_t )this + 0x170);
 	}
 
-	int GetDamage()
-	{
-		return *(int*)((uintptr_t)this + 0x894);
+	float GetPenetration() {
+		return *( float* ) ( ( uintptr_t )this + 0x178);
 	}
 
-	float GetRange()
-	{
-		return *(float*)((uintptr_t)this + 0x898);
+	float GetRange() {
+		return *( float* ) ( ( uintptr_t )this + 0x184);
 	}
 
-	float GetRangeModifier()
-	{
-		return *(float*)((uintptr_t)this + 0x89C);
+	float GetRangeModifier() {
+		return *( float* ) ( ( uintptr_t )this + 0x188);
 	}
 
-	float GetSpread()
-	{
-		return *(float*)((uintptr_t)this + 0xA4C);
+	float GetMaxPlayerSpeed() {
+		return *( float* ) ( ( uintptr_t )this + 0x1B0);
 	}
 
-	int GetZoomLevels()
-	{
-		return *(int*)((uintptr_t)this + 0xEE0);
+	int GetZoomLevels() { // Doesn't work correctly on some weapons.
+		return *( int* ) ( ( uintptr_t )this + 0x23C); // DT_WeaponCSBaseGun.m_zoomLevel ?
+	}
+
+	char* GetTracerEffect() {
+		return *( char** ) ( ( uintptr_t )this + 0x280);
+	}
+
+	int* GetTracerFrequency() {
+		return ( int* ) ( ( uintptr_t )this + 0x288);
 	}
 };
 
@@ -620,28 +718,39 @@ public:
 		return *(float*)((uintptr_t)this + offsets.DT_WeaponCSBase.m_fAccuracyPenalty);
 	}
 
-	CCSWeaponInfo* GetCSWpnData()
+    float GetPostPoneReadyTime()
+    {
+        return *(float*)((uintptr_t) this + offsets.DT_WeaponCSBase.m_flPostponeFireReadyTime);
+    }
+
+	bool GetReloadVisuallyComplete()
 	{
-		typedef CCSWeaponInfo* (* oGetCSWpnData)(void*);
-		return getvfunc<oGetCSWpnData>(this, 524)(this);
+		return *(bool*)((uintptr_t)this + offsets.DT_WeaponCSBase.m_bReloadVisuallyComplete);
 	}
 
-	float GetInaccuracy()
-	{
-		typedef float (* oGetInaccuracy)(void*);
-		return getvfunc<oGetInaccuracy>(this, 551)(this);
+	void DrawCrosshair() { // returns a 1
+		typedef void (* oDrawCrosshair)( void* );
+		return getvfunc<oDrawCrosshair>( this, 471 )( this );
 	}
 
-	float GetSpread()
-	{
-		typedef float (* oGetSpread)(void*);
-		return getvfunc<oGetSpread>(this, 552)(this); //553
+	CCSWeaponInfo* GetCSWpnData() { // "script file not found" (client_client)
+		typedef CCSWeaponInfo* (* oGetCSWpnData)( void* );
+		return getvfunc<oGetCSWpnData>( this, 528 )( this );
 	}
 
-	void UpdateAccuracyPenalty()
-	{
-		typedef void (* oUpdateAccuracyPenalty)(void*);
-		return getvfunc<oUpdateAccuracyPenalty>(this, 553)(this);//554
+	float GetSpread() {
+		typedef float (* oGetSpread)( void* );
+		return getvfunc<oGetSpread>( this, 520 )( this );
+	}
+
+	float GetInaccuracy() {
+		typedef float (* oGetInaccuracy)( void* );
+		return getvfunc<oGetInaccuracy>( this, 550 )( this );
+	}
+
+	void UpdateAccuracyPenalty() {
+		typedef void (* oUpdateAccuracyPenalty)( void* );
+		return getvfunc<oUpdateAccuracyPenalty>( this, 551 )( this );
 	}
 };
 

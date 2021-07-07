@@ -1,9 +1,8 @@
 #include "skybox.h"
 
-bool Settings::NoSky::enabled = false;
-bool Settings::SkyBox::enabled = false;
-int Settings::SkyBox::skyBoxNumber = 0;
-ColorVar Settings::NoSky::color = ImColor(0, 0, 0, 255);
+#include "../settings.h"
+#include "../interfaces.h"
+
 float r1 = 0.0f, g1 = 0.0f, b1 = 0.0f, a1 = 0.0f;
 
 std::unordered_map<MaterialHandle_t, ImColor> skyboxMaterials;
@@ -11,7 +10,8 @@ std::unordered_map<MaterialHandle_t, ImColor> skyboxMaterials2;
 
 const char* skyBoxNames[] = {
 		"cs_baggage_skybox_", // 0
-		"cs_tibet", "embassy",
+		"cs_tibet",
+		"embassy",
 		"italy",
 		"jungle",
 		"office",
@@ -31,8 +31,11 @@ const char* skyBoxNames[] = {
 		"vertigo",
 		"vertigo_hdr",
 		"vertigoblue_hdr",
-		"vietnam" // 21
+		"vietnam" // 22
 };
+
+int lastSetSkybox = -1;
+bool resetSkyBox = false;
 
 void SkyBox::FrameStageNotify(ClientFrameStage_t stage)
 {
@@ -56,10 +59,17 @@ void SkyBox::FrameStageNotify(ClientFrameStage_t stage)
 		skyboxMaterials2.clear();
 	}
 
-	if( engine->IsInGame() && Settings::ESP::enabled && Settings::SkyBox::enabled )
-	{
-		SetNamedSkyBox(skyBoxNames[Settings::SkyBox::skyBoxNumber]); // Thanks to @Flawww
+	if( engine->IsInGame() && Settings::ESP::enabled && Settings::SkyBox::enabled ) {
+		if( lastSetSkybox != Settings::SkyBox::skyBoxNumber ){
+			SetNamedSkyBox(skyBoxNames[Settings::SkyBox::skyBoxNumber]); // Thanks to @Flawww
+			lastSetSkybox = Settings::SkyBox::skyBoxNumber;
+			resetSkyBox = true;
+		}
 		return;
+	} else if( resetSkyBox ){
+		SetNamedSkyBox( cvar->FindVar("sv_skyname")->strValue );
+		resetSkyBox = false;
+        lastSetSkybox = -1;
 	}
 
 	if (stage != ClientFrameStage_t::FRAME_NET_UPDATE_POSTDATAUPDATE_END)

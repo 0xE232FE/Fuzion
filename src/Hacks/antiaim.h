@@ -1,17 +1,15 @@
 #pragma once
 
-#include "../settings.h"
-#include "../SDK/SDK.h"
-#include "../Hooks/hooks.h"
-#include "../interfaces.h"
-#include "aimbot.h"
-#include <lua.hpp>
+#include "../SDK/IInputSystem.h"
+#include "../SDK/IClientEntity.h"
 
 namespace AntiAim
 {
-	void LuaInit();
-	void LuaCleanup();
+    extern QAngle realAngle;
+    extern QAngle fakeAngle;
 
-	//Hooks
-	void CreateMove(CUserCmd* cmd);
+    float GetMaxDelta( CCSGOAnimState *animState );
+
+    //Hooks
+    void CreateMove(CUserCmd* cmd);
 }

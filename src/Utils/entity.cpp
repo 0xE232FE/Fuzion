@@ -1,6 +1,11 @@
 #include "entity.h"
 #include "math.h"
 
+#include "../interfaces.h"
+
+Vector lastRayStart;
+Vector lastRayEnd;
+
 bool Entity::IsVisible(C_BasePlayer* player, int bone, float fov, bool smoke_check)
 {
 	C_BasePlayer* localplayer = (C_BasePlayer*) entityList->GetClientEntity(engine->GetLocalPlayer());
@@ -34,7 +39,7 @@ bool Entity::IsVisible(C_BasePlayer* player, int bone, float fov, bool smoke_che
 	ray.Init(p_vecHead, e_vecHead);
 	CTraceFilter traceFilter;
 	traceFilter.pSkip = localplayer;
-	trace->TraceRay(ray, MASK_SHOT, &traceFilter, &tr);
+	trace->TraceRay(ray, MASK_VISIBLE_AND_NPCS, &traceFilter, &tr);
 
 	if (smoke_check && LineGoesThroughSmoke(p_vecHead, e_vecHead, true))
 		return false;
@@ -75,13 +80,11 @@ bool Entity::IsSpotVisible(C_BasePlayer* player, Vector spot, float fov, bool sm
 	ray.Init(p_vecHead, e_vecHead);
 	CTraceFilter traceFilter;
 	traceFilter.pSkip = localplayer;
-	trace->TraceRay(ray, MASK_SHOT, &traceFilter, &tr);
+	trace->TraceRay(ray, MASK_VISIBLE_AND_NPCS, &traceFilter, &tr);
 
 	if (smoke_check && LineGoesThroughSmoke(p_vecHead, e_vecHead, true))
 		return false;
-
-	return tr.m_pEntityHit == player;
-
+	return (tr.m_pEntityHit==player || tr.fraction >= 0.98f);
 }
 
 bool Entity::IsVisibleThroughEnemies(C_BasePlayer *player, int bone, float fov, bool smoke_check)
@@ -110,23 +113,20 @@ bool Entity::IsVisibleThroughEnemies(C_BasePlayer *player, int bone, float fov, 
 	ray.Init(p_vecHead, e_vecHead);
 	CTraceFilter traceFilter;
 	traceFilter.pSkip = localplayer;
-	trace->TraceRay(ray, MASK_SHOT, &traceFilter, &tr);
+	trace->TraceRay(ray, MASK_VISIBLE_AND_NPCS, &traceFilter, &tr);
 
 	if (smoke_check && LineGoesThroughSmoke(p_vecHead, e_vecHead, true))
 		return false;
 
 
-	if( tr.m_pEntityHit )
+	if (tr.m_pEntityHit)
 	{
-		if( tr.m_pEntityHit != player )
+		if (tr.m_pEntityHit != player)
 		{
-			if( tr.m_pEntityHit->GetTeam() == player->GetTeam() ) // if someone from the same team
-			{
+			if (Entity::IsTeamMate((C_BasePlayer*)tr.m_pEntityHit, player)) // if someone from the same team
 				return true;
-			}
-		} else{
-			return true;
 		}
+		else return true;
 	}
 	return false;
 }
@@ -156,23 +156,20 @@ bool Entity::IsSpotVisibleThroughEnemies(C_BasePlayer *player, Vector spot, floa
 	ray.Init(p_vecHead, e_vecHead);
 	CTraceFilter traceFilter;
 	traceFilter.pSkip = localplayer;
-	trace->TraceRay(ray, MASK_SHOT, &traceFilter, &tr);
+	trace->TraceRay(ray, MASK_VISIBLE_AND_NPCS, &traceFilter, &tr);
 
 	if (smoke_check && LineGoesThroughSmoke(p_vecHead, e_vecHead, true))
 		return false;
 
 
-	if( tr.m_pEntityHit )
+	if (tr.m_pEntityHit)
 	{
-		if( tr.m_pEntityHit != player )
+		if (tr.m_pEntityHit != player)
 		{
-			if( tr.m_pEntityHit->GetTeam() == player->GetTeam() ) // if someone from the same team
-			{
+			if (Entity::IsTeamMate((C_BasePlayer*)tr.m_pEntityHit, player)) // if someone from the same team
 				return true;
-			}
-		} else{
-			return true;
 		}
+		else return true;
 	}
 	return false;
 }
@@ -193,25 +190,10 @@ bool Entity::IsPlanting(C_BasePlayer* player)
 	return ((C_WeaponC4*)activeWeapon)->GetStartedArming();
 }
 
-Bone Entity::GetBoneByName(C_BasePlayer* player, const char* boneName)
+bool Entity::IsTeamMate(C_BasePlayer* player, C_BasePlayer* localPlayer)
 {
-	studiohdr_t* pStudioModel = modelInfo->GetStudioModel(player->GetModel());
-	if (!pStudioModel)
-		return Bone::INVALID;
-
-	matrix3x4_t pBoneToWorldOut[128];
-	if (!player->SetupBones(pBoneToWorldOut, 128, 256, 0))
-		return Bone::INVALID;
-
-	for (int i = 0; i < pStudioModel->numbones; i++)
-	{
-		mstudiobone_t *pBone = pStudioModel->pBone(i);
-		if (!pBone)
-			continue;
-
-		if (pBone->pszName() && strcmp(pBone->pszName(), boneName) == 0)
-			return (Bone)i;
-	}
-
-	return Bone::INVALID;
+	if (Util::IsDangerZone())
+		return (localPlayer->GetSurvivalTeam() == -1) ? false : (localPlayer->GetSurvivalTeam() == player->GetSurvivalTeam());
+	else
+		return player->GetTeam() == localPlayer->GetTeam();
 }

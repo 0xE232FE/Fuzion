@@ -1,12 +1,7 @@
 #include "bhop.h"
 
-bool Settings::BHop::enabled = false;
-bool Settings::BHop::Chance::enabled = false;
-int Settings::BHop::Chance::value = 70;
-bool Settings::BHop::Hops::enabledMax = false;
-int Settings::BHop::Hops::Max = 7;
-bool Settings::BHop::Hops::enabledMin = false;
-int Settings::BHop::Hops::Min = 3;
+#include "../settings.h"
+#include "../interfaces.h"
 
 void BHop::CreateMove(CUserCmd* cmd)
 {
@@ -19,7 +14,7 @@ void BHop::CreateMove(CUserCmd* cmd)
 
 	C_BasePlayer* localplayer = (C_BasePlayer*) entityList->GetClientEntity(engine->GetLocalPlayer());
 
-	if (!localplayer)
+	if (!localplayer || !localplayer->GetAlive())
 		return;
 
 	if (localplayer->GetMoveType() == MOVETYPE_LADDER || localplayer->GetMoveType() == MOVETYPE_NOCLIP)

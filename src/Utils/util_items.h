@@ -1,10 +1,7 @@
 #pragma once
 
 #include <string>
-#include <map>
-#include <algorithm>
-#include "util.h"
-#include "../SDK/SDK.h"
+#include "../SDK/definitions.h" //ItemDefIndex
 
 namespace Util
 {
@@ -33,5 +30,6 @@ namespace Util
 		bool IsGlove(ItemDefinitionIndex index);
 		bool IsCTWeapon(ItemDefinitionIndex index);
 		bool IsTWeapon(ItemDefinitionIndex index);
+		bool IsScopeable(ItemDefinitionIndex index);
 	}
 }
